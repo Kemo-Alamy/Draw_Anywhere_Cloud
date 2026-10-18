@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    أيقونة Undo — سهم بيرجع لليسار
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <path
+        android:pathData="M12.5,8C10.65,8 8.99,8.7 7.7,9.83L4,6V15H13L9.27,11.27C10.16,10.49 11.28,10 12.5,10C14.77,10 16.72,11.44 17.5,13.45L19.41,12.74C18.29,9.87 15.61,8 12.5,8Z"
+        android:fillColor="#FFFFFFFF" />
+
+</vector>
