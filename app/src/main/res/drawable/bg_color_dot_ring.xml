@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    إطار دائري للـ Color Dot في الـ Toolbar والـ Panels
+    الـ View اللي جوا بياخد لون الـ Canvas الحالي كـ Background
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <solid android:color="@android:color/transparent" />
+
+    <stroke
+        android:width="2dp"
+        android:color="#FFFFFFFF" />
+
+</shape>
