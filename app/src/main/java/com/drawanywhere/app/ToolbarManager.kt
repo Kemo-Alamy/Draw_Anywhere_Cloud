@@ -22,16 +22,20 @@ class ToolbarManager(
     private val fadeHandler   = Handler(Looper.getMainLooper())
     private val FADE_DELAY_MS = 3000L
     private var isFaded       = false
-
     private var canvasVisible = true
 
-    // Drag state
+    // Drag
     private var dragStartRawX  = 0f
     private var dragStartRawY  = 0f
     private var windowInitX    = 0
     private var windowInitY    = 0
     private var isDragging     = false
-    private val DRAG_THRESHOLD = 12f
+    private val DRAG_THRESHOLD = 10f
+
+    // Long press على زرار الأدوات (3 ثواني → يفتح نمط الخط)
+    private val longPressHandler     = Handler(Looper.getMainLooper())
+    private var longPressTriggered   = false
+    private val LONG_PRESS_MS        = 3000L
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -39,17 +43,14 @@ class ToolbarManager(
 
     fun destroy() {
         fadeHandler.removeCallbacksAndMessages(null)
+        longPressHandler.removeCallbacksAndMessages(null)
         try { toolbarView?.let { windowManager.removeView(it) } } catch (e: Exception) { }
-        toolbarView   = null
-        toolbarParams = null
+        toolbarView = null; toolbarParams = null
     }
 
-    fun changeOrientation(orientation: ToolbarOrientation) {
-        destroy()
-        inflate(orientation)
-    }
+    fun changeOrientation(orientation: ToolbarOrientation) { destroy(); inflate(orientation) }
 
-    // ─── Public State Sync ────────────────────────────────────────────────────
+    // ─── Public Sync ──────────────────────────────────────────────────────────
 
     fun updateColorDot(color: Int) {
         toolbarView?.findViewById<View>(R.id.view_color_dot)
@@ -61,7 +62,7 @@ class ToolbarManager(
             ?.alpha = if (enabled) 1f else 0.35f
     }
 
-    // ─── Inflate & Attach ─────────────────────────────────────────────────────
+    // ─── Inflate ──────────────────────────────────────────────────────────────
 
     private fun inflate(orientation: ToolbarOrientation) {
         val layoutId = if (orientation == ToolbarOrientation.HORIZONTAL)
@@ -79,57 +80,86 @@ class ToolbarManager(
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                     or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
-        ).apply { gravity = Gravity.TOP or Gravity.START; x = 40; y = 100 }
+        ).apply { gravity = Gravity.TOP or Gravity.START; x = 30; y = 80 }
         toolbarParams = params
 
-        // حالة أولية
         view.findViewById<View>(R.id.view_color_dot)
             ?.setBackgroundColor(drawingCanvas.currentColor)
         view.findViewById<ImageView>(R.id.view_finger_indicator)
             ?.alpha = if (service.appPreferences.fingerDrawing) 1f else 0.35f
 
-        setupButtonClicks(view)
+        setupButtons(view)
         setupDrag(view, params)
         scheduleIdleFade()
-
         windowManager.addView(view, params)
     }
 
     // ─── Buttons ──────────────────────────────────────────────────────────────
 
-    private fun setupButtonClicks(view: View) {
-        // ✅ btn_hide
-        view.findViewById<View>(R.id.btn_hide)?.setOnClickListener {
+    private fun setupButtons(view: View) {
+
+        // ① Eye — يخفي/يُظهر الـ Canvas ويُصغّر الـ Toolbar
+        view.findViewById<ImageView>(R.id.btn_hide)?.setOnClickListener {
             resetFadeTimer(); toggleCanvas()
         }
-        // ✅ btn_undo
+
+        // ② Undo
         view.findViewById<View>(R.id.btn_undo)?.setOnClickListener {
             resetFadeTimer(); drawingCanvas.undo()
         }
-        // ✅ btn_clear (موجود في الـ Vertical فقط)
+
+        // ③ Clear (vertical only)
         view.findViewById<View>(R.id.btn_clear)?.setOnClickListener {
             resetFadeTimer(); drawingCanvas.clearAll()
         }
-        // ✅ btn_add_image (موجود في الـ Vertical فقط)
+
+        // ④ Add Image (vertical only)
         view.findViewById<View>(R.id.btn_add_image)?.setOnClickListener {
-            resetFadeTimer()
-            panelManager.dismissAll()
+            resetFadeTimer(); panelManager.dismissAll()
             service.launchImagePicker()
         }
-        // ✅ btn_tools (موجود في الـ Vertical فقط)
-        view.findViewById<View>(R.id.btn_tools)?.setOnClickListener {
-            resetFadeTimer(); panelManager.toggleToolsPanel()
+
+        // ⑤ Tools — click عادي يفتح الأدوات
+        //            ضغط 3 ثواني يفتح نمط الخط
+        view.findViewById<View>(R.id.btn_tools)?.let { btn ->
+            btn.setOnTouchListener { _, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        longPressTriggered = false
+                        resetFadeTimer()
+                        longPressHandler.postDelayed({
+                            longPressTriggered = true
+                            panelManager.showLineStylePanel()
+                        }, LONG_PRESS_MS)
+                        false
+                    }
+                    MotionEvent.ACTION_UP,
+                    MotionEvent.ACTION_CANCEL -> {
+                        longPressHandler.removeCallbacksAndMessages(null)
+                        false
+                    }
+                    else -> false
+                }
+            }
+            btn.setOnClickListener {
+                resetFadeTimer()
+                if (!longPressTriggered) panelManager.toggleToolsPanel()
+                longPressTriggered = false
+            }
         }
-        // ✅ view_color_dot — موجود في الاتنين Horizontal و Vertical
-        // ده بيفتح الـ Color Panel (بدل btn_color اللي كان غلط)
+
+        // ⑥ Color Dot
         view.findViewById<View>(R.id.view_color_dot)?.setOnClickListener {
             resetFadeTimer(); panelManager.toggleColorPanel()
         }
-        // ✅ btn_settings
+
+        // ⑦ Settings
         view.findViewById<View>(R.id.btn_settings)?.setOnClickListener {
             resetFadeTimer(); panelManager.toggleSettingsPanel()
         }
     }
+
+    // ─── Toggle Canvas + Collapse Toolbar ────────────────────────────────────
 
     private fun toggleCanvas() {
         canvasVisible = !canvasVisible
@@ -140,21 +170,42 @@ class ToolbarManager(
         service.setCanvasTouchable(
             canvasVisible && service.appPreferences.fingerDrawing
         )
+        collapseToolbar(!canvasVisible)
+    }
+
+    /**
+     * لما الـ Canvas مخفي → يُخفي كل حاجة في الـ Toolbar غير زرار العين
+     * الـ Toolbar يبقى صغير زي دايرة
+     */
+    private fun collapseToolbar(collapse: Boolean) {
+        val v = toolbarView ?: return
+        val vis = if (collapse) View.GONE else View.VISIBLE
+        listOf(
+            R.id.btn_undo, R.id.btn_clear, R.id.btn_add_image,
+            R.id.btn_tools, R.id.view_color_dot,
+            R.id.view_finger_indicator, R.id.btn_settings,
+            R.id.toolbar_divider
+        ).forEach { id -> v.findViewById<View>(id)?.visibility = vis }
+
+        // تغيير لون العين: أحمر لما Canvas مخفي، أبيض لما شغال
+        v.findViewById<ImageView>(R.id.btn_hide)?.setColorFilter(
+            if (collapse)
+                service.getColor(R.color.toolbar_icon_active)
+            else
+                service.getColor(R.color.toolbar_icon_default)
+        )
     }
 
     // ─── Drag ─────────────────────────────────────────────────────────────────
 
     private fun setupDrag(view: View, params: WindowManager.LayoutParams) {
         view.setOnTouchListener { _, event ->
-            restoreOpacity()
-            resetFadeTimer()
+            restoreOpacity(); resetFadeTimer()
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     isDragging    = false
-                    dragStartRawX = event.rawX
-                    dragStartRawY = event.rawY
-                    windowInitX   = params.x
-                    windowInitY   = params.y
+                    dragStartRawX = event.rawX; dragStartRawY = event.rawY
+                    windowInitX   = params.x;   windowInitY   = params.y
                     false
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -167,15 +218,13 @@ class ToolbarManager(
                         params.x = (windowInitX + dx).toInt()
                         params.y = (windowInitY + dy).toInt()
                         try { windowManager.updateViewLayout(view, params) }
-                        catch (e: Exception) { }
+                        catch (_: Exception) {}
                         true
                     } else false
                 }
                 MotionEvent.ACTION_UP,
                 MotionEvent.ACTION_CANCEL -> {
-                    val wasDragging = isDragging
-                    isDragging = false
-                    wasDragging
+                    val was = isDragging; isDragging = false; was
                 }
                 else -> false
             }
@@ -190,15 +239,14 @@ class ToolbarManager(
     }
 
     private fun resetFadeTimer() {
-        if (isFaded) restoreOpacity()
-        scheduleIdleFade()
+        if (isFaded) restoreOpacity(); scheduleIdleFade()
     }
 
     private fun fadeOut() {
         val v = toolbarView ?: return
         isFaded = true
-        ObjectAnimator.ofFloat(v, View.ALPHA, v.alpha, 0.30f)
-            .apply { duration = 400L; start() }
+        ObjectAnimator.ofFloat(v, View.ALPHA, v.alpha, 0.28f)
+            .apply { duration = 500L; start() }
     }
 
     private fun restoreOpacity() {
@@ -206,7 +254,7 @@ class ToolbarManager(
         if (!isFaded) return
         isFaded = false
         ObjectAnimator.ofFloat(v, View.ALPHA, v.alpha, 1f)
-            .apply { duration = 150L; start() }
+            .apply { duration = 120L; start() }
     }
 
     private fun overlayType(): Int =
