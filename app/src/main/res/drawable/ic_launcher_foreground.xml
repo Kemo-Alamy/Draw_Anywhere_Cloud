@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    أيقونة التطبيق — قلم رسم أبيض على خلفية شفافة
+    تُستخدم كـ Foreground لـ Adaptive Icon
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- دائرة حمراء خلفية -->
+    <path
+        android:pathData="M54,54m-46,0a46,46 0,1 1,92 0a46,46 0,1 1,-92 0"
+        android:fillColor="#FFDD1111" />
+
+    <!-- جسم القلم -->
+    <path
+        android:pathData="M34,74.25V81H40.75L64.81,56.94L58.06,50.19L34,74.25Z"
+        android:fillColor="#FFFFFFFF" />
+
+    <!-- رأس القلم -->
+    <path
+        android:pathData="M69.71,45.04C70.1,44.65 70.1,44.02 69.71,43.63L66.37,40.29C65.98,39.9 65.35,39.9 64.96,40.29L62.13,43.12L68.88,49.87L69.71,45.04Z"
+        android:fillColor="#FFFFFFFF" />
+
+    <!-- خط القاعدة (Underline) -->
+    <path
+        android:pathData="M30,84H78"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round" />
+
+</vector>
