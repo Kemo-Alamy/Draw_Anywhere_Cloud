@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ألوان التطبيق الأساسية -->
+    <color name="colorPrimary">#FFB73A3A</color>
+    <color name="colorPrimaryVariant">#FF8B0000</color>
+    <color name="colorOnPrimary">#FFFFFFFF</color>
+    <color name="colorSecondary">#FF444444</color>
+    <color name="colorOnSecondary">#FFFFFFFF</color>
+    <color name="colorError">#FFCF6679</color>
+    <color name="colorOnError">#FF000000</color>
+    <color name="colorSurface">#FF1C1C1C</color>
+    <color name="colorOnSurface">#FFFFFFFF</color>
+    <color name="colorBackground">#FF121212</color>
+    <color name="colorOnBackground">#FFFFFFFF</color>
+    <color name="transparent">#00000000</color>
+
+    <!-- Toolbar -->
+    <color name="toolbar_bg">#E8141414</color>
+    <color name="toolbar_icon_default">#FFFFFFFF</color>
+    <color name="toolbar_icon_active">#FFFF4444</color>
+    <color name="toolbar_dot_red">#FFDD1111</color>
+    <color name="toolbar_divider">#44FFFFFF</color>
+    <color name="toolbar_lock_icon">#FFFFA500</color>
+
+    <!-- Panels -->
+    <color name="panel_bg">#F21A1A1A</color>
+    <color name="panel_bg_darker">#F2101010</color>
+    <color name="panel_border">#FF303030</color>
+    <color name="panel_text">#FFFFFFFF</color>
+    <color name="panel_subtext">#FFAAAAAA</color>
+    <color name="panel_section_divider">#FF2A2A2A</color>
+
+    <!-- Tool Items -->
+    <color name="tool_item_selected_bg">#44FF4444</color>
+    <color name="tool_item_selected_border">#FFFF4444</color>
+    <color name="tool_item_default_bg">#FF252525</color>
+    <color name="tool_item_default_border">#FF3A3A3A</color>
+    <color name="tool_item_text_selected">#FFFFFFFF</color>
+    <color name="tool_item_text_default">#FFCCCCCC</color>
+
+    <!-- Buttons -->
+    <color name="btn_apply_bg">#FFDD1111</color>
+    <color name="btn_apply_text">#FFFFFFFF</color>
+    <color name="btn_quit_bg">#FF1E1E1E</color>
+    <color name="btn_quit_text">#FFFF4444</color>
+
+    <!-- Settings toggles (Horizontal/Vertical) -->
+    <color name="setting_selected_bg">#FFFF4444</color>
+    <color name="setting_selected_text">#FFFFFFFF</color>
+    <color name="setting_unselected_bg">#FF252525</color>
+    <color name="setting_unselected_text">#FF999999</color>
+    <color name="setting_toggle_tint">#FFFF4444</color>
+
+    <!-- Sliders -->
+    <color name="slider_thumb_color">#FFFF4444</color>
+    <color name="slider_track_active">#FFFF4444</color>
+    <color name="slider_track_inactive">#FF3A3A3A</color>
+
+    <!-- HSV Color Picker -->
+    <color name="hsv_hex_bg">#FF252525</color>
+    <color name="hsv_hex_text">#FFFFFFFF</color>
+    <color name="hsv_slider_h_start">#FFFF0000</color>
+
+    <!-- Preset Color Palette (4 rows × 5 cols = 20 colors) -->
+    <color name="preset_01">#FFFF0000</color>
+    <color name="preset_02">#FFFF6600</color>
+    <color name="preset_03">#FFFF9900</color>
+    <color name="preset_04">#FFFFCC00</color>
+    <color name="preset_05">#FFFFFF00</color>
+    <color name="preset_06">#FF66FF00</color>
+    <color name="preset_07">#FF00CC44</color>
+    <color name="preset_08">#FF00BBAA</color>
+    <color name="preset_09">#FF00CCFF</color>
+    <color name="preset_10">#FF0088FF</color>
+    <color name="preset_11">#FF0044FF</color>
+    <color name="preset_12">#FF4400FF</color>
+    <color name="preset_13">#FF8800FF</color>
+    <color name="preset_14">#FFCC00FF</color>
+    <color name="preset_15">#FFFF00CC</color>
+    <color name="preset_16">#FFFFFFFF</color>
+    <color name="preset_17">#FFBBBBBB</color>
+    <color name="preset_18">#FF777777</color>
+    <color name="preset_19">#FF333333</color>
+    <color name="preset_20">#FF000000</color>
+
+    <!-- Laser stroke fading color -->
+    <color name="laser_color">#FFFF2222</color>
+
+    <!-- Highlighter base alpha overlay -->
+    <color name="highlighter_yellow">#80FFFF00</color>
+    <color name="highlighter_green">#8000FF88</color>
+    <color name="highlighter_blue">#800088FF</color>
+</resources>
