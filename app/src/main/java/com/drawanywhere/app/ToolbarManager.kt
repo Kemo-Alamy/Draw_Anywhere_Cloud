@@ -23,7 +23,7 @@ class ToolbarManager(
     private val FADE_DELAY_MS = 3000L
     private var isFaded       = false
 
-    private var canvasVisible  = true
+    private var canvasVisible = true
 
     // Drag state
     private var dragStartRawX  = 0f
@@ -52,7 +52,8 @@ class ToolbarManager(
     // ─── Public State Sync ────────────────────────────────────────────────────
 
     fun updateColorDot(color: Int) {
-        toolbarView?.findViewById<View>(R.id.view_color_dot)?.setBackgroundColor(color)
+        toolbarView?.findViewById<View>(R.id.view_color_dot)
+            ?.setBackgroundColor(color)
     }
 
     fun updateFingerIndicator(enabled: Boolean) {
@@ -97,29 +98,34 @@ class ToolbarManager(
     // ─── Buttons ──────────────────────────────────────────────────────────────
 
     private fun setupButtonClicks(view: View) {
+        // ✅ btn_hide
         view.findViewById<View>(R.id.btn_hide)?.setOnClickListener {
             resetFadeTimer(); toggleCanvas()
         }
+        // ✅ btn_undo
         view.findViewById<View>(R.id.btn_undo)?.setOnClickListener {
             resetFadeTimer(); drawingCanvas.undo()
         }
+        // ✅ btn_clear (موجود في الـ Vertical فقط)
         view.findViewById<View>(R.id.btn_clear)?.setOnClickListener {
             resetFadeTimer(); drawingCanvas.clearAll()
         }
+        // ✅ btn_add_image (موجود في الـ Vertical فقط)
         view.findViewById<View>(R.id.btn_add_image)?.setOnClickListener {
             resetFadeTimer()
             panelManager.dismissAll()
             service.launchImagePicker()
         }
+        // ✅ btn_tools (موجود في الـ Vertical فقط)
         view.findViewById<View>(R.id.btn_tools)?.setOnClickListener {
             resetFadeTimer(); panelManager.toggleToolsPanel()
         }
+        // ✅ view_color_dot — موجود في الاتنين Horizontal و Vertical
+        // ده بيفتح الـ Color Panel (بدل btn_color اللي كان غلط)
         view.findViewById<View>(R.id.view_color_dot)?.setOnClickListener {
             resetFadeTimer(); panelManager.toggleColorPanel()
         }
-        view.findViewById<View>(R.id.btn_color)?.setOnClickListener {
-            resetFadeTimer(); panelManager.toggleColorPanel()
-        }
+        // ✅ btn_settings
         view.findViewById<View>(R.id.btn_settings)?.setOnClickListener {
             resetFadeTimer(); panelManager.toggleSettingsPanel()
         }
@@ -127,9 +133,13 @@ class ToolbarManager(
 
     private fun toggleCanvas() {
         canvasVisible = !canvasVisible
-        if (!canvasVisible && service.appPreferences.clearOnHide) drawingCanvas.clearAll()
-        drawingCanvas.visibility = if (canvasVisible) View.VISIBLE else View.INVISIBLE
-        service.setCanvasTouchable(canvasVisible && service.appPreferences.fingerDrawing)
+        if (!canvasVisible && service.appPreferences.clearOnHide)
+            drawingCanvas.clearAll()
+        drawingCanvas.visibility =
+            if (canvasVisible) View.VISIBLE else View.INVISIBLE
+        service.setCanvasTouchable(
+            canvasVisible && service.appPreferences.fingerDrawing
+        )
     }
 
     // ─── Drag ─────────────────────────────────────────────────────────────────
@@ -145,12 +155,13 @@ class ToolbarManager(
                     dragStartRawY = event.rawY
                     windowInitX   = params.x
                     windowInitY   = params.y
-                    false   // مش consume → الأزرار تشتغل عادي
+                    false
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - dragStartRawX
                     val dy = event.rawY - dragStartRawY
-                    if (!isDragging && (abs(dx) > DRAG_THRESHOLD || abs(dy) > DRAG_THRESHOLD))
+                    if (!isDragging &&
+                        (abs(dx) > DRAG_THRESHOLD || abs(dy) > DRAG_THRESHOLD))
                         isDragging = true
                     if (isDragging) {
                         params.x = (windowInitX + dx).toInt()
@@ -160,7 +171,8 @@ class ToolbarManager(
                         true
                     } else false
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                MotionEvent.ACTION_UP,
+                MotionEvent.ACTION_CANCEL -> {
                     val wasDragging = isDragging
                     isDragging = false
                     wasDragging
