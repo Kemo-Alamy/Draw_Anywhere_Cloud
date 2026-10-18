@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Fallback Icon لـ xxhdpi — layer-list يجمع الـ Background والـ Foreground
+    minSdk=26 يعني الـ adaptive icon هو اللي بيتستخدم فعلاً
+    الملف ده fallback احتياطي فقط
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_launcher_background" />
+    <item
+        android:top="18dp"
+        android:left="18dp"
+        android:right="18dp"
+        android:bottom="18dp"
+        android:drawable="@drawable/ic_launcher_foreground" />
+</layer-list>
