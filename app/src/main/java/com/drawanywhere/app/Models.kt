@@ -6,41 +6,47 @@ import android.net.Uri
 import android.graphics.Bitmap
 import android.graphics.Color
 
-// ─── أنواع أدوات الرسم ───────────────────────────────────────────────────────
 enum class DrawingTool(val displayName: String) {
     PEN("Pen"),
+    MATTE_PEN("Matte Pen"),       // قلم مل — معتم صلب
     LASER("Laser"),
     BRUSH("Brush"),
     HIGHLIGHTER("Highlighter"),
     CALLIGRAPHY("Calligraphy"),
+    LASSO("Lasso"),               // قلم تحديد — تحديد حر مغلق
     RECTANGLE("Rectangle"),
     ELLIPSE("Ellipse"),
     STROKE_ERASER("Stroke Eraser"),
     PIXEL_ERASER("Pixel Eraser")
 }
 
-// ─── اتجاه الـ Toolbar ───────────────────────────────────────────────────────
+enum class LineStyle(val label: String) {
+    SOLID("━━━━━  Solid"),
+    DASHED("─ ─ ─  Dashed"),
+    DOTTED("· · · ·  Dotted"),
+    DASH_DOT("─·─·─  Dash·Dot")
+}
+
 enum class ToolbarOrientation { HORIZONTAL, VERTICAL }
 
-// ─── حالة أداة واحدة (مستقلة تماماً عن باقي الأدوات) ───────────────────────
 data class ToolState(
     var color: Int = Color.RED,
     var strokeWidth: Float = 8f,
-    var opacity: Int = 255        // 0–255
+    var opacity: Int = 255,
+    var lineStyle: LineStyle = LineStyle.SOLID
 )
 
-// ─── بيانات Stroke واحدة (خط / شكل مكتمل) ──────────────────────────────────
 data class StrokeData(
     val tool: DrawingTool,
     val path: Path,
     val color: Int,
     val strokeWidth: Float,
     val opacity: Int,
-    val rect: RectF? = null,      // للـ Rectangle / Ellipse
+    val lineStyle: LineStyle = LineStyle.SOLID,
+    val rect: RectF? = null,
     val timestamp: Long = System.currentTimeMillis()
 )
 
-// ─── بيانات صورة مستوردة على الـ Canvas ─────────────────────────────────────
 data class ImageOverlayData(
     val id: Int,
     var x: Float,
