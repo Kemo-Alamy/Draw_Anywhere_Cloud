@@ -1,20 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- إذن الرسم فوق التطبيقات الأخرى -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-
-    <!-- إذن الـ Foreground Service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-
-    <!-- إذن الإشعارات (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-
-    <!-- إذن الصور (Android 13+) -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-
-    <!-- إذن التخزين (Android 12 وأقل) -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
@@ -27,10 +18,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DrawAnywhere">
 
-        <!--
-            MainActivity شفافة بالكامل — وظيفتها الوحيدة:
-            تشغيل/إيقاف الـ DrawingService عند كل نقرة على الأيقونة
-        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -45,9 +32,16 @@
         </activity>
 
         <!--
-            DrawingService — الـ Foreground Service اللي بيتحكم
-            في كل الـ Overlay Windows (Toolbar + Canvas)
+            Activity شفافة وظيفتها الوحيدة فتح معرض الصور
+            وإرسال الـ URI للـ DrawingService
         -->
+        <activity
+            android:name=".ImagePickerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.DrawAnywhere.Transparent"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true" />
+
         <service
             android:name=".DrawingService"
             android:exported="false"
