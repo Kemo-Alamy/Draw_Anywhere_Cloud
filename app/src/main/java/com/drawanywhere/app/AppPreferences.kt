@@ -11,46 +11,53 @@ class AppPreferences(context: Context) {
 
     companion object {
         private const val PREFS_NAME = "draw_anywhere_prefs"
-        private const val KEY_ORIENTATION     = "toolbar_orientation"
-        private const val KEY_CLEAR_ON_HIDE   = "clear_on_hide"
-        private const val KEY_OPEN_ON_START   = "open_on_start"
-        private const val KEY_FINGER_DRAWING  = "finger_drawing"
+        private const val KEY_ORIENTATION    = "toolbar_orientation"
+        private const val KEY_CLEAR_ON_HIDE  = "clear_on_hide"
+        private const val KEY_OPEN_ON_START  = "open_on_start"
+        private const val KEY_FINGER_DRAWING = "finger_drawing"
 
-        // ألوان الأدوات
-        private const val KEY_COLOR_PEN          = "color_pen"
-        private const val KEY_COLOR_LASER        = "color_laser"
-        private const val KEY_COLOR_BRUSH        = "color_brush"
-        private const val KEY_COLOR_HIGHLIGHTER  = "color_highlighter"
-        private const val KEY_COLOR_CALLIGRAPHY  = "color_calligraphy"
-        private const val KEY_COLOR_RECTANGLE    = "color_rectangle"
-        private const val KEY_COLOR_ELLIPSE      = "color_ellipse"
+        // ─── ألوان ───────────────────────────────────────────────────────────
+        private const val KEY_COLOR_PEN         = "color_pen"
+        private const val KEY_COLOR_MATTE       = "color_matte"
+        private const val KEY_COLOR_LASER       = "color_laser"
+        private const val KEY_COLOR_BRUSH       = "color_brush"
+        private const val KEY_COLOR_HIGHLIGHTER = "color_highlighter"
+        private const val KEY_COLOR_CALLIGRAPHY = "color_calligraphy"
+        private const val KEY_COLOR_LASSO       = "color_lasso"
+        private const val KEY_COLOR_RECTANGLE   = "color_rectangle"
+        private const val KEY_COLOR_ELLIPSE     = "color_ellipse"
 
-        // عرض الأدوات (مخزن كـ Float.toRawBits)
+        // ─── عرض الخط ────────────────────────────────────────────────────────
         private const val KEY_WIDTH_PEN         = "width_pen"
+        private const val KEY_WIDTH_MATTE       = "width_matte"
         private const val KEY_WIDTH_LASER       = "width_laser"
         private const val KEY_WIDTH_BRUSH       = "width_brush"
         private const val KEY_WIDTH_HIGHLIGHTER = "width_highlighter"
         private const val KEY_WIDTH_CALLIGRAPHY = "width_calligraphy"
+        private const val KEY_WIDTH_LASSO       = "width_lasso"
         private const val KEY_WIDTH_RECTANGLE   = "width_rectangle"
         private const val KEY_WIDTH_ELLIPSE     = "width_ellipse"
         private const val KEY_WIDTH_ERASER      = "width_eraser"
 
-        // شفافية الأدوات
+        // ─── شفافية ───────────────────────────────────────────────────────────
         private const val KEY_ALPHA_PEN         = "alpha_pen"
+        private const val KEY_ALPHA_MATTE       = "alpha_matte"
         private const val KEY_ALPHA_LASER       = "alpha_laser"
         private const val KEY_ALPHA_BRUSH       = "alpha_brush"
         private const val KEY_ALPHA_HIGHLIGHTER = "alpha_highlighter"
         private const val KEY_ALPHA_CALLIGRAPHY = "alpha_calligraphy"
+        private const val KEY_ALPHA_LASSO       = "alpha_lasso"
         private const val KEY_ALPHA_RECTANGLE   = "alpha_rectangle"
         private const val KEY_ALPHA_ELLIPSE     = "alpha_ellipse"
-    }
 
-    // ─── إعدادات عامة ────────────────────────────────────────────────────────
+        // ─── نمط الخط (للـ PEN فقط) ──────────────────────────────────────────
+        private const val KEY_LINE_STYLE_PEN    = "line_style_pen"
+    }
 
     var toolbarOrientation: ToolbarOrientation
         get() = ToolbarOrientation.valueOf(
-            prefs.getString(KEY_ORIENTATION, ToolbarOrientation.HORIZONTAL.name)
-                ?: ToolbarOrientation.HORIZONTAL.name
+            prefs.getString(KEY_ORIENTATION, ToolbarOrientation.VERTICAL.name)
+                ?: ToolbarOrientation.VERTICAL.name
         )
         set(v) = prefs.edit().putString(KEY_ORIENTATION, v.name).apply()
 
@@ -66,49 +73,70 @@ class AppPreferences(context: Context) {
         get() = prefs.getBoolean(KEY_FINGER_DRAWING, true)
         set(v) = prefs.edit().putBoolean(KEY_FINGER_DRAWING, v).apply()
 
-    // ─── حالة كل أداة ────────────────────────────────────────────────────────
-
     fun getToolState(tool: DrawingTool): ToolState = when (tool) {
         DrawingTool.PEN -> ToolState(
             prefs.getInt(KEY_COLOR_PEN, Color.RED),
             floatBits(KEY_WIDTH_PEN, 8f),
-            prefs.getInt(KEY_ALPHA_PEN, 255)
+            prefs.getInt(KEY_ALPHA_PEN, 255),
+            LineStyle.valueOf(
+                prefs.getString(KEY_LINE_STYLE_PEN, LineStyle.SOLID.name)
+                    ?: LineStyle.SOLID.name
+            )
+        )
+        DrawingTool.MATTE_PEN -> ToolState(
+            prefs.getInt(KEY_COLOR_MATTE, Color.WHITE),
+            floatBits(KEY_WIDTH_MATTE, 12f),
+            prefs.getInt(KEY_ALPHA_MATTE, 255),
+            LineStyle.SOLID
         )
         DrawingTool.LASER -> ToolState(
-            prefs.getInt(KEY_COLOR_LASER, Color.RED),
-            floatBits(KEY_WIDTH_LASER, 6f),
-            prefs.getInt(KEY_ALPHA_LASER, 255)
+            Color.RED,
+            floatBits(KEY_WIDTH_LASER, 7f),
+            255,
+            LineStyle.SOLID
         )
         DrawingTool.BRUSH -> ToolState(
             prefs.getInt(KEY_COLOR_BRUSH, Color.RED),
-            floatBits(KEY_WIDTH_BRUSH, 24f),
-            prefs.getInt(KEY_ALPHA_BRUSH, 220)
+            floatBits(KEY_WIDTH_BRUSH, 28f),
+            prefs.getInt(KEY_ALPHA_BRUSH, 210),
+            LineStyle.SOLID
         )
         DrawingTool.HIGHLIGHTER -> ToolState(
             prefs.getInt(KEY_COLOR_HIGHLIGHTER, Color.YELLOW),
-            floatBits(KEY_WIDTH_HIGHLIGHTER, 32f),
-            prefs.getInt(KEY_ALPHA_HIGHLIGHTER, 120)
+            floatBits(KEY_WIDTH_HIGHLIGHTER, 36f),
+            prefs.getInt(KEY_ALPHA_HIGHLIGHTER, 110),
+            LineStyle.SOLID
         )
         DrawingTool.CALLIGRAPHY -> ToolState(
             prefs.getInt(KEY_COLOR_CALLIGRAPHY, Color.WHITE),
-            floatBits(KEY_WIDTH_CALLIGRAPHY, 12f),
-            prefs.getInt(KEY_ALPHA_CALLIGRAPHY, 255)
+            floatBits(KEY_WIDTH_CALLIGRAPHY, 14f),
+            prefs.getInt(KEY_ALPHA_CALLIGRAPHY, 255),
+            LineStyle.SOLID
+        )
+        DrawingTool.LASSO -> ToolState(
+            prefs.getInt(KEY_COLOR_LASSO, 0xFF00CCFF.toInt()),
+            floatBits(KEY_WIDTH_LASSO, 3f),
+            prefs.getInt(KEY_ALPHA_LASSO, 220),
+            LineStyle.DASHED
         )
         DrawingTool.RECTANGLE -> ToolState(
             prefs.getInt(KEY_COLOR_RECTANGLE, Color.RED),
             floatBits(KEY_WIDTH_RECTANGLE, 5f),
-            prefs.getInt(KEY_ALPHA_RECTANGLE, 255)
+            prefs.getInt(KEY_ALPHA_RECTANGLE, 255),
+            LineStyle.SOLID
         )
         DrawingTool.ELLIPSE -> ToolState(
             prefs.getInt(KEY_COLOR_ELLIPSE, Color.RED),
             floatBits(KEY_WIDTH_ELLIPSE, 5f),
-            prefs.getInt(KEY_ALPHA_ELLIPSE, 255)
+            prefs.getInt(KEY_ALPHA_ELLIPSE, 255),
+            LineStyle.SOLID
         )
         DrawingTool.STROKE_ERASER,
         DrawingTool.PIXEL_ERASER -> ToolState(
             Color.TRANSPARENT,
-            floatBits(KEY_WIDTH_ERASER, 22f),
-            255
+            floatBits(KEY_WIDTH_ERASER, 24f),
+            255,
+            LineStyle.SOLID
         )
     }
 
@@ -119,11 +147,15 @@ class AppPreferences(context: Context) {
                 e.putInt(KEY_COLOR_PEN, state.color)
                 e.putInt(KEY_WIDTH_PEN, state.strokeWidth.toRawBits())
                 e.putInt(KEY_ALPHA_PEN, state.opacity)
+                e.putString(KEY_LINE_STYLE_PEN, state.lineStyle.name)
+            }
+            DrawingTool.MATTE_PEN -> {
+                e.putInt(KEY_COLOR_MATTE, state.color)
+                e.putInt(KEY_WIDTH_MATTE, state.strokeWidth.toRawBits())
+                e.putInt(KEY_ALPHA_MATTE, state.opacity)
             }
             DrawingTool.LASER -> {
-                e.putInt(KEY_COLOR_LASER, state.color)
                 e.putInt(KEY_WIDTH_LASER, state.strokeWidth.toRawBits())
-                e.putInt(KEY_ALPHA_LASER, state.opacity)
             }
             DrawingTool.BRUSH -> {
                 e.putInt(KEY_COLOR_BRUSH, state.color)
@@ -139,6 +171,11 @@ class AppPreferences(context: Context) {
                 e.putInt(KEY_COLOR_CALLIGRAPHY, state.color)
                 e.putInt(KEY_WIDTH_CALLIGRAPHY, state.strokeWidth.toRawBits())
                 e.putInt(KEY_ALPHA_CALLIGRAPHY, state.opacity)
+            }
+            DrawingTool.LASSO -> {
+                e.putInt(KEY_COLOR_LASSO, state.color)
+                e.putInt(KEY_WIDTH_LASSO, state.strokeWidth.toRawBits())
+                e.putInt(KEY_ALPHA_LASSO, state.opacity)
             }
             DrawingTool.RECTANGLE -> {
                 e.putInt(KEY_COLOR_RECTANGLE, state.color)
@@ -158,7 +195,6 @@ class AppPreferences(context: Context) {
         e.apply()
     }
 
-    // ─── Helper ───────────────────────────────────────────────────────────────
     private fun floatBits(key: String, default: Float): Float =
         Float.fromBits(prefs.getInt(key, default.toRawBits()))
 }
