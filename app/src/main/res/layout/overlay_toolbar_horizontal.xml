@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    الـ Toolbar الأفقي — 5 عناصر تطابق الـ Screenshots
+    العناصر الغايبة (btn_clear / btn_add_image / btn_tools) مش موجودة هنا
+    الكود بيستخدم ?. (null-safe) فمش هيـCrash
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_toolbar"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="3dp"
+    android:paddingBottom="3dp"
+    android:elevation="6dp">
+
+    <!-- ① Color Dot — دائرة اللون الحالي، عند الضغط يفتح Color Panel -->
+    <FrameLayout
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:layout_marginStart="2dp"
+        android:layout_marginEnd="4dp"
+        android:background="@drawable/bg_color_dot_ring"
+        android:clipToOutline="true"
+        android:contentDescription="@string/cd_color_dot">
+        <View
+            android:id="@+id/view_color_dot"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/toolbar_dot_red" />
+    </FrameLayout>
+
+    <!-- ② Hide / Show Canvas (Eye icon) -->
+    <ImageView
+        android:id="@+id/btn_hide"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:padding="8dp"
+        android:src="@drawable/ic_eye"
+        android:tint="@color/toolbar_icon_default"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/cd_btn_hide" />
+
+    <!-- ③ Finger Drawing Indicator — مش Clickable، بيغير alpha حسب الحالة -->
+    <ImageView
+        android:id="@+id/view_finger_indicator"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:padding="8dp"
+        android:src="@drawable/ic_finger"
+        android:tint="@color/toolbar_icon_default"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no" />
+
+    <!-- ④ Undo -->
+    <ImageView
+        android:id="@+id/btn_undo"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:padding="8dp"
+        android:src="@drawable/ic_undo"
+        android:tint="@color/toolbar_icon_default"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/cd_btn_undo" />
+
+    <!-- ⑤ Settings / Hamburger -->
+    <ImageView
+        android:id="@+id/btn_settings"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:padding="8dp"
+        android:src="@drawable/ic_settings"
+        android:tint="@color/toolbar_icon_default"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/cd_btn_settings" />
+
+</LinearLayout>
