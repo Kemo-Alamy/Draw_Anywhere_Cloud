@@ -2,7 +2,8 @@
 <resources>
 
     <!-- الثيم الأساسي للتطبيق -->
-    <style name="Theme.DrawAnywhere" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.DrawAnywhere"
+        parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryVariant">@color/colorPrimaryVariant</item>
         <item name="colorOnPrimary">@color/colorOnPrimary</item>
@@ -19,11 +20,9 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
 
-    <!--
-        ثيم الـ MainActivity الشفاف
-        الـ Activity مش بتعرض أي UI — بس بتشغل أو توقف الـ Service
-    -->
-    <style name="Theme.DrawAnywhere.Transparent" parent="android:Theme.Translucent.NoTitleBar">
+    <!-- ثيم الـ MainActivity الشفاف -->
+    <style name="Theme.DrawAnywhere.Transparent"
+        parent="android:Theme.Translucent.NoTitleBar">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:colorBackground">@android:color/transparent</item>
         <item name="android:backgroundDimEnabled">false</item>
@@ -33,8 +32,16 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
-    <!-- ستايل لأزرار الـ Tools في الـ Tools Panel -->
-    <style name="Widget.DrawAnywhere.ToolButton">
+    <!--
+        ✅ BASE STYLE — ده اللي كان ناقص وبيسبب الـ Error
+        كل الـ Widget.DrawAnywhere.* بترث منه
+    -->
+    <style name="Widget.DrawAnywhere" parent="android:Widget">
+    </style>
+
+    <!-- ستايل أزرار الـ Tools -->
+    <style name="Widget.DrawAnywhere.ToolButton"
+        parent="Widget.DrawAnywhere">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">44dp</item>
         <item name="android:gravity">center</item>
@@ -46,15 +53,17 @@
         <item name="android:fontFamily">sans-serif</item>
     </style>
 
-    <!-- ستايل للنصوص داخل الـ Panels -->
-    <style name="Widget.DrawAnywhere.PanelLabel">
+    <!-- ستايل النصوص داخل الـ Panels -->
+    <style name="Widget.DrawAnywhere.PanelLabel"
+        parent="Widget.DrawAnywhere">
         <item name="android:textColor">@color/panel_text</item>
         <item name="android:textSize">13sp</item>
         <item name="android:fontFamily">sans-serif</item>
     </style>
 
-    <!-- ستايل لعناوين الأقسام في الـ Panels -->
-    <style name="Widget.DrawAnywhere.SectionHeader">
+    <!-- ستايل عناوين الأقسام -->
+    <style name="Widget.DrawAnywhere.SectionHeader"
+        parent="Widget.DrawAnywhere">
         <item name="android:textColor">@color/panel_subtext</item>
         <item name="android:textSize">12sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
@@ -62,7 +71,8 @@
     </style>
 
     <!-- ستايل زرار APPLY -->
-    <style name="Widget.DrawAnywhere.ApplyButton">
+    <style name="Widget.DrawAnywhere.ApplyButton"
+        parent="Widget.DrawAnywhere">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">44dp</item>
         <item name="android:background">@color/btn_apply_bg</item>
@@ -75,7 +85,8 @@
     </style>
 
     <!-- ستايل زرار Quit -->
-    <style name="Widget.DrawAnywhere.QuitButton">
+    <style name="Widget.DrawAnywhere.QuitButton"
+        parent="Widget.DrawAnywhere">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">44dp</item>
         <item name="android:background">@color/btn_quit_bg</item>
