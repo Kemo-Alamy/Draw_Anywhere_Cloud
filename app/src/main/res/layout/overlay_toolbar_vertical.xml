@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    الـ Toolbar العمودي — كل الـ 8 عناصر من فوق لتحت
+    كل الـ IDs اللي ToolbarManager بيبحث عنهم موجودين هنا
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:background="@drawable/bg_toolbar"
+    android:paddingStart="3dp"
+    android:paddingEnd="3dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:elevation="6dp">
+
+    <!-- ① Hide / Show Canvas (Eye icon) -->
+    <ImageView
+        android:id="@+id/btn_hide"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:padding="9dp"
+        android:src="@drawable/ic_eye"
+        android:tint="@color/toolbar_icon_default"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/cd_btn_hide" />
+
+    <!-- ② Undo -->
+    <ImageView
+        android:id="@+id/btn_undo"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:padding="9dp"
+        android:src="@drawable/ic_undo"
+        android:tint="@color/toolbar_icon_default"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/cd_btn_undo" />
+
+    <!-- ③ Clear All (Trash icon) -->
+    <ImageView
+        android:id="@+id/btn_clear"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:padding="9dp"
+        android:src="@drawable/ic_trash"
+        android:tint="@color/toolbar_icon_default"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/cd_btn_clear" />
+
+    <!-- ④ Add Image from Gallery -->
+    <ImageView
+        android:id="@+id/btn_add_image"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:padding="9dp"
+        android:src="@drawable/ic_image"
+        android:tint="@color/toolbar_icon_default"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/cd_btn_image" />
+
+    <!-- ⑤ Tools / Pen Selector -->
+    <ImageView
+        android:id="@+id/btn_tools"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:padding="9dp"
+        android:src="@drawable/ic_pen"
+        android:tint="@color/toolbar_icon_default"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/cd_btn_tools" />
+
+    <!-- Divider بسيط -->
+    <View
+        android:layout_width="28dp"
+        android:layout_height="1dp"
+        android:background="@color/toolbar_divider"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="2dp" />
+
+    <!-- ⑥ Color Dot — دائرة اللون الحالي -->
+    <FrameLayout
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        android:background="@drawable/bg_color_dot_ring"
+        android:clipToOutline="true"
+        android:contentDescription="@string/cd_color_dot">
+        <View
+            android:id="@+id/view_color_dot"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/toolbar_dot_red" />
+    </FrameLayout>
+
+    <!-- ⑦ Finger Drawing Indicator -->
+    <ImageView
+        android:id="@+id/view_finger_indicator"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:padding="9dp"
+        android:src="@drawable/ic_finger"
+        android:tint="@color/toolbar_icon_default"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no" />
+
+    <!-- ⑧ Settings / Hamburger -->
+    <ImageView
+        android:id="@+id/btn_settings"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:padding="9dp"
+        android:src="@drawable/ic_settings"
+        android:tint="@color/toolbar_icon_default"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/cd_btn_settings" />
+
+</LinearLayout>
