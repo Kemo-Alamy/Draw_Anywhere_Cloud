@@ -4,29 +4,31 @@
 
     <!-- Notification -->
     <string name="notification_channel_name">DrawAnywhere Service</string>
-    <string name="notification_channel_desc">Keeps the drawing overlay active in the background</string>
+    <string name="notification_channel_desc">Keeps the drawing overlay active</string>
     <string name="notification_title">DrawAnywhere Active</string>
-    <string name="notification_text">Drawing overlay is running. Tap the app icon to stop.</string>
+    <string name="notification_text">Tap the app icon to stop.</string>
 
-    <!-- Tools Panel -->
+    <!-- Tools -->
     <string name="tool_pen">Pen</string>
+    <string name="tool_matte_pen">Matte Pen</string>
     <string name="tool_laser">Laser</string>
     <string name="tool_brush">Brush</string>
     <string name="tool_highlighter">Highlighter</string>
     <string name="tool_calligraphy">Calligraphy</string>
+    <string name="tool_lasso">Lasso</string>
     <string name="tool_rectangle">Rectangle</string>
     <string name="tool_ellipse">Ellipse</string>
     <string name="tool_stroke_eraser">Stroke Eraser</string>
     <string name="tool_pixel_eraser">Pixel Eraser</string>
 
-    <!-- Color / Tool Controls Panel -->
+    <!-- Color Panel -->
     <string name="panel_color">Color</string>
     <string name="panel_tool_controls">Tool controls</string>
     <string name="label_width">Width</string>
     <string name="label_opacity">Opacity</string>
     <string name="btn_apply">APPLY</string>
 
-    <!-- Settings Panel -->
+    <!-- Settings -->
     <string name="panel_settings">Settings</string>
     <string name="settings_horizontal">Horizontal</string>
     <string name="settings_vertical">Vertical</string>
@@ -40,19 +42,18 @@
     <string name="about_app_name">DrawAnywhere</string>
     <string name="about_text">© 2021–2026 shez.k\n\nlicensed under AGPLv3 or\nany later version\n\nApp icon by Solar Icons,\nlicensed under CC BY 4.0</string>
 
-    <!-- Permission Dialog -->
+    <!-- Permission -->
     <string name="perm_title">Overlay Permission Required</string>
-    <string name="perm_message">DrawAnywhere needs permission to draw over other apps. Please enable it in the next screen.</string>
+    <string name="perm_message">DrawAnywhere needs permission to draw over other apps.</string>
     <string name="perm_go_settings">Open Settings</string>
     <string name="perm_cancel">Cancel</string>
 
-    <!-- Content Descriptions (Accessibility) -->
+    <!-- Accessibility -->
     <string name="cd_btn_hide">Hide or show canvas</string>
     <string name="cd_btn_undo">Undo last stroke</string>
     <string name="cd_btn_clear">Clear canvas</string>
     <string name="cd_btn_image">Add image from gallery</string>
     <string name="cd_btn_tools">Select drawing tool</string>
-    <string name="cd_btn_color">Open color picker</string>
     <string name="cd_btn_settings">Open settings</string>
     <string name="cd_color_dot">Current drawing color</string>
 </resources>
