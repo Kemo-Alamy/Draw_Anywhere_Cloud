@@ -1,0 +1,26 @@
+# Built artifacts
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Build directories
+build/
+app/build/
+.gradle/
+local.properties
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Keystore
+*.jks
+*.keystore
+
+# Generated
+app/src/main/assets/
+captures/
