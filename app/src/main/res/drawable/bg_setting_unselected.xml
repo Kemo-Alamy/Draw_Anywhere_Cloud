@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    خلفية زرار Horizontal / Vertical في الـ Settings Panel
+    الحالة غير المحددة: خلفية داكنة + حافة رفيعة + زوايا مدورة
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <solid android:color="@color/setting_unselected_bg" />
+
+    <corners android:radius="6dp" />
+
+    <stroke
+        android:width="1dp"
+        android:color="@color/panel_border" />
+
+</shape>
