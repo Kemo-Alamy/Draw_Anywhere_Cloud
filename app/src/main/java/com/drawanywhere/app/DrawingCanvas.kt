@@ -10,7 +10,6 @@ import kotlin.math.*
 
 class DrawingCanvas(context: Context) : View(context) {
 
-    // ─── حالة الأداة الحالية ──────────────────────────────────────────────────
     var currentTool: DrawingTool      = DrawingTool.PEN
     var currentColor: Int             = Color.RED
     var currentStrokeWidth: Float     = 8f
@@ -18,7 +17,9 @@ class DrawingCanvas(context: Context) : View(context) {
     var currentLineStyle: LineStyle   = LineStyle.SOLID
     var fingerDrawingEnabled: Boolean = true
 
-    // ─── بيانات الرسم ─────────────────────────────────────────────────────────
+    // ✅ Callback يبلغ الـ Toolbar كل ما يتغير عدد الـ strokes (عشان حالة Undo/Trash)
+    var onContentChanged: ((hasContent: Boolean) -> Unit)? = null
+
     private val strokes      = mutableListOf<StrokeData>()
     private val laserStrokes = mutableListOf<StrokeData>()
 
@@ -31,23 +32,18 @@ class DrawingCanvas(context: Context) : View(context) {
     private var prevX            = 0f
     private var prevY            = 0f
 
-    // ─── Off-screen Bitmap ────────────────────────────────────────────────────
     private var offBmp: Bitmap? = null
     private var offCvs: Canvas? = null
 
-    // ─── Image Overlays ───────────────────────────────────────────────────────
     val imageOverlays = mutableListOf<ImageOverlayData>()
     private val imageController = ImageOverlayController().apply {
         onInvalidate = { invalidate() }
     }
 
-    // ─── Laser Handler ────────────────────────────────────────────────────────
-    private val laserHandler   = Handler(Looper.getMainLooper())
-    // الليزر دايماً أحمر ساطع بريق عالي
-    private val LASER_COLOR    = Color.parseColor("#FF2200")
-    private val LASER_FADE_MS  = 2000L   // 2 ثانية بدل 4
+    private val laserHandler  = Handler(Looper.getMainLooper())
+    private val LASER_COLOR   = Color.parseColor("#FF2200")
+    private val LASER_FADE_MS = 2000L
 
-    // ─── Paints ───────────────────────────────────────────────────────────────
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style      = Paint.Style.STROKE
         strokeCap  = Paint.Cap.ROUND
@@ -81,14 +77,15 @@ class DrawingCanvas(context: Context) : View(context) {
         currentLineStyle   = state.lineStyle
     }
 
-    fun updateLineStyle(style: LineStyle) {
-        currentLineStyle = style
-    }
+    fun updateLineStyle(style: LineStyle) { currentLineStyle = style }
+
+    fun hasContent(): Boolean = strokes.isNotEmpty() || imageOverlays.isNotEmpty()
 
     fun undo() {
         if (strokes.isNotEmpty()) {
             strokes.removeAt(strokes.lastIndex)
             rebuildOffscreen(); invalidate()
+            onContentChanged?.invoke(hasContent())
         }
     }
 
@@ -99,13 +96,13 @@ class DrawingCanvas(context: Context) : View(context) {
         laserHandler.removeCallbacksAndMessages(null)
         offBmp?.eraseColor(Color.TRANSPARENT)
         invalidate()
+        onContentChanged?.invoke(false)
     }
 
     fun addImageOverlay(data: ImageOverlayData) {
         imageOverlays.add(data); invalidate()
+        onContentChanged?.invoke(true)
     }
-
-    // ─── onSizeChanged ────────────────────────────────────────────────────────
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -116,8 +113,6 @@ class DrawingCanvas(context: Context) : View(context) {
             rebuildOffscreen()
         }
     }
-
-    // ─── Offscreen ────────────────────────────────────────────────────────────
 
     private fun rebuildOffscreen() {
         val bmp = offBmp ?: return
@@ -141,7 +136,7 @@ class DrawingCanvas(context: Context) : View(context) {
                 cvs.drawPath(s.path, eraserPaint)
             }
             DrawingTool.STROKE_ERASER,
-            DrawingTool.LASER -> { /* لا يُرسم على الـ Offscreen */ }
+            DrawingTool.LASER -> {}
 
             DrawingTool.PEN -> {
                 configPaintFromStroke(strokePaint, s)
@@ -170,8 +165,6 @@ class DrawingCanvas(context: Context) : View(context) {
         }
     }
 
-    // ─── Paint Config ─────────────────────────────────────────────────────────
-
     private fun configPaintFromStroke(paint: Paint, s: StrokeData) {
         paint.color       = s.color
         paint.alpha       = s.opacity
@@ -196,7 +189,6 @@ class DrawingCanvas(context: Context) : View(context) {
         paint.strokeJoin  = Paint.Join.ROUND
         paint.style       = Paint.Style.STROKE
         applyToolEffects(paint, currentTool, currentStrokeWidth)
-        // تطبيق نمط الخط للأدوات اللي بتدعمه
         when (currentTool) {
             DrawingTool.PEN   -> applyLineStyle(paint, currentLineStyle, currentStrokeWidth)
             DrawingTool.LASSO -> applyLineStyle(paint, LineStyle.DASHED, currentStrokeWidth)
@@ -206,62 +198,38 @@ class DrawingCanvas(context: Context) : View(context) {
 
     private fun applyToolEffects(paint: Paint, tool: DrawingTool, sw: Float) {
         when (tool) {
-            DrawingTool.BRUSH -> {
-                paint.maskFilter = BlurMaskFilter(sw * 0.3f, BlurMaskFilter.Blur.NORMAL)
-            }
-            DrawingTool.HIGHLIGHTER -> {
-                paint.strokeCap  = Paint.Cap.SQUARE
-                paint.maskFilter = null
-            }
-            DrawingTool.CALLIGRAPHY -> {
-                paint.strokeCap  = Paint.Cap.BUTT
-                paint.maskFilter = null
-            }
+            DrawingTool.BRUSH -> paint.maskFilter = BlurMaskFilter(sw * 0.3f, BlurMaskFilter.Blur.NORMAL)
+            DrawingTool.HIGHLIGHTER -> { paint.strokeCap = Paint.Cap.SQUARE; paint.maskFilter = null }
+            DrawingTool.CALLIGRAPHY -> { paint.strokeCap = Paint.Cap.BUTT; paint.maskFilter = null }
             DrawingTool.MATTE_PEN -> {
-                paint.strokeCap   = Paint.Cap.SQUARE
-                paint.strokeJoin  = Paint.Join.MITER
-                paint.maskFilter  = null
-                paint.alpha       = 255
+                paint.strokeCap = Paint.Cap.SQUARE; paint.strokeJoin = Paint.Join.MITER
+                paint.maskFilter = null; paint.alpha = 255
             }
-            else -> { paint.maskFilter = null }
+            else -> paint.maskFilter = null
         }
     }
 
-    // تطبيق نمط الخط بـ DashPathEffect
     private fun applyLineStyle(paint: Paint, style: LineStyle, sw: Float) {
         paint.pathEffect = when (style) {
             LineStyle.SOLID    -> null
-            LineStyle.DASHED   -> DashPathEffect(
-                floatArrayOf(sw * 4f, sw * 2f), 0f
-            )
-            LineStyle.DOTTED   -> DashPathEffect(
-                floatArrayOf(0.1f, sw * 2.2f), 0f
-            )
-            LineStyle.DASH_DOT -> DashPathEffect(
-                floatArrayOf(sw * 4f, sw * 1.5f, 0.1f, sw * 1.5f), 0f
-            )
+            LineStyle.DASHED   -> DashPathEffect(floatArrayOf(sw * 4f, sw * 2f), 0f)
+            LineStyle.DOTTED   -> DashPathEffect(floatArrayOf(0.1f, sw * 2.2f), 0f)
+            LineStyle.DASH_DOT -> DashPathEffect(floatArrayOf(sw * 4f, sw * 1.5f, 0.1f, sw * 1.5f), 0f)
         }
     }
 
-    // ─── onDraw ───────────────────────────────────────────────────────────────
-
     override fun onDraw(canvas: Canvas) {
-        // ① صور الـ Overlay
         for (img in imageOverlays) {
             img.bitmap?.let { bmp ->
                 canvas.save()
-                canvas.rotate(img.rotation,
-                    img.x + img.width / 2f, img.y + img.height / 2f)
-                canvas.drawBitmap(bmp, null,
-                    RectF(img.x, img.y, img.x + img.width, img.y + img.height), null)
+                canvas.rotate(img.rotation, img.x + img.width / 2f, img.y + img.height / 2f)
+                canvas.drawBitmap(bmp, null, RectF(img.x, img.y, img.x + img.width, img.y + img.height), null)
                 canvas.restore()
             }
         }
 
-        // ② الـ Strokes المكتملة
         offBmp?.let { canvas.drawBitmap(it, 0f, 0f, null) }
 
-        // ③ Laser Strokes — تتلاشى خلال 2 ثانية بلون أحمر ساطع
         val now = System.currentTimeMillis()
         val laserIter = laserStrokes.iterator()
         while (laserIter.hasNext()) {
@@ -271,48 +239,31 @@ class DrawingCanvas(context: Context) : View(context) {
             val alpha    = (255 * fraction).toInt()
             if (alpha > 0) {
                 strokePaint.apply {
-                    color       = LASER_COLOR
-                    this.alpha  = alpha
-                    strokeWidth = laser.strokeWidth
-                    maskFilter  = BlurMaskFilter(laser.strokeWidth * 0.5f, BlurMaskFilter.Blur.SOLID)
-                    xfermode    = null
-                    pathEffect  = null
-                    strokeCap   = Paint.Cap.ROUND
-                    style       = Paint.Style.STROKE
+                    color = LASER_COLOR; this.alpha = alpha; strokeWidth = laser.strokeWidth
+                    maskFilter = BlurMaskFilter(laser.strokeWidth * 0.5f, BlurMaskFilter.Blur.SOLID)
+                    xfermode = null; pathEffect = null; strokeCap = Paint.Cap.ROUND
+                    style = Paint.Style.STROKE
                 }
                 canvas.drawPath(laser.path, strokePaint)
                 strokePaint.maskFilter = null
             }
         }
 
-        // ④ Preview الـ Stroke الحالي
         val path = activePath ?: return
         when (currentTool) {
-            DrawingTool.RECTANGLE -> {
-                configPaintLive(strokePaint)
-                canvas.drawRect(shapePreviewRect, strokePaint)
-            }
-            DrawingTool.ELLIPSE -> {
-                configPaintLive(strokePaint)
-                canvas.drawOval(shapePreviewRect, strokePaint)
-            }
-            DrawingTool.PIXEL_ERASER -> {
-                eraserPaint.strokeWidth = currentStrokeWidth
-                canvas.drawPath(path, eraserPaint)
-            }
-            DrawingTool.STROKE_ERASER -> { /* لا preview */ }
-            else -> {
-                configPaintLive(strokePaint)
-                canvas.drawPath(path, strokePaint)
-                strokePaint.pathEffect = null
-            }
+            DrawingTool.RECTANGLE -> { configPaintLive(strokePaint); canvas.drawRect(shapePreviewRect, strokePaint) }
+            DrawingTool.ELLIPSE   -> { configPaintLive(strokePaint); canvas.drawOval(shapePreviewRect, strokePaint) }
+            DrawingTool.PIXEL_ERASER -> { eraserPaint.strokeWidth = currentStrokeWidth; canvas.drawPath(path, eraserPaint) }
+            DrawingTool.STROKE_ERASER -> {}
+            else -> { configPaintLive(strokePaint); canvas.drawPath(path, strokePaint); strokePaint.pathEffect = null }
         }
     }
 
-    // ─── Touch ────────────────────────────────────────────────────────────────
-
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        // ✅ لو Touch Pass-Through مفعّل، الرسم متعطل تماماً — نرجع false
+        // عشان اللمسة تعدي للتطبيق اللي تحت (الـ WindowManager Flag بيتولى الباقي)
         if (!fingerDrawingEnabled) return false
+
         if (imageOverlays.isNotEmpty() &&
             imageController.onTouchEvent(event, imageOverlays)) return true
 
@@ -330,8 +281,7 @@ class DrawingCanvas(context: Context) : View(context) {
         prevX = x; prevY = y
         when (currentTool) {
             DrawingTool.STROKE_ERASER -> eraseStrokeAt(x, y)
-            DrawingTool.RECTANGLE,
-            DrawingTool.ELLIPSE -> {
+            DrawingTool.RECTANGLE, DrawingTool.ELLIPSE -> {
                 shapeStartX = x; shapeStartY = y
                 shapePreviewRect.set(x, y, x, y)
                 activePath = Path()
@@ -348,12 +298,8 @@ class DrawingCanvas(context: Context) : View(context) {
     private fun touchMove(x: Float, y: Float) {
         when (currentTool) {
             DrawingTool.STROKE_ERASER -> { eraseStrokeAt(x, y); return }
-            DrawingTool.RECTANGLE,
-            DrawingTool.ELLIPSE -> {
-                shapePreviewRect.set(
-                    min(shapeStartX, x), min(shapeStartY, y),
-                    max(shapeStartX, x), max(shapeStartY, y)
-                )
+            DrawingTool.RECTANGLE, DrawingTool.ELLIPSE -> {
+                shapePreviewRect.set(min(shapeStartX, x), min(shapeStartY, y), max(shapeStartX, x), max(shapeStartY, y))
             }
             else -> {
                 val p = activePath ?: return
@@ -369,52 +315,39 @@ class DrawingCanvas(context: Context) : View(context) {
         val path = activePath
         when (currentTool) {
             DrawingTool.STROKE_ERASER -> {}
-
-            DrawingTool.RECTANGLE,
-            DrawingTool.ELLIPSE -> {
+            DrawingTool.RECTANGLE, DrawingTool.ELLIPSE -> {
                 if (path != null) {
-                    val s = StrokeData(currentTool, path, currentColor,
-                        currentStrokeWidth, currentOpacity,
-                        rect = RectF(shapePreviewRect))
+                    val s = StrokeData(currentTool, path, currentColor, currentStrokeWidth, currentOpacity, rect = RectF(shapePreviewRect))
                     strokes.add(s); offCvs?.let { commitStroke(it, s) }
+                    onContentChanged?.invoke(true)
                 }
             }
-
             DrawingTool.LASER -> {
                 if (path != null) {
                     path.lineTo(x, y)
-                    val s = StrokeData(DrawingTool.LASER, path,
-                        LASER_COLOR, currentStrokeWidth, 255,
-                        timestamp = System.currentTimeMillis())
+                    val s = StrokeData(DrawingTool.LASER, path, LASER_COLOR, currentStrokeWidth, 255, timestamp = System.currentTimeMillis())
                     laserStrokes.add(s); scheduleLaserFade(s)
                 }
             }
-
             DrawingTool.LASSO -> {
                 if (path != null) {
-                    path.lineTo(x, y)
-                    path.lineTo(lassoStartX, lassoStartY) // إغلاق التحديد
-                    path.close()
-                    val s = StrokeData(DrawingTool.LASSO, path,
-                        currentColor, currentStrokeWidth,
-                        currentOpacity, LineStyle.DASHED)
+                    path.lineTo(x, y); path.lineTo(lassoStartX, lassoStartY); path.close()
+                    val s = StrokeData(DrawingTool.LASSO, path, currentColor, currentStrokeWidth, currentOpacity, LineStyle.DASHED)
                     strokes.add(s); offCvs?.let { commitStroke(it, s) }
+                    onContentChanged?.invoke(true)
                 }
             }
-
             else -> {
                 if (path != null) {
                     path.lineTo(x, y)
-                    val s = StrokeData(currentTool, path, currentColor,
-                        currentStrokeWidth, currentOpacity, currentLineStyle)
+                    val s = StrokeData(currentTool, path, currentColor, currentStrokeWidth, currentOpacity, currentLineStyle)
                     strokes.add(s); offCvs?.let { commitStroke(it, s) }
+                    onContentChanged?.invoke(true)
                 }
             }
         }
         activePath = null; invalidate()
     }
-
-    // ─── Stroke Eraser ────────────────────────────────────────────────────────
 
     private fun eraseStrokeAt(x: Float, y: Float) {
         val iter = strokes.iterator(); var changed = false
@@ -425,22 +358,19 @@ class DrawingCanvas(context: Context) : View(context) {
             b.inset(-40f, -40f)
             if (b.contains(x, y)) { iter.remove(); changed = true }
         }
-        if (changed) { rebuildOffscreen(); invalidate() }
+        if (changed) {
+            rebuildOffscreen(); invalidate()
+            onContentChanged?.invoke(hasContent())
+        }
     }
-
-    // ─── Laser Fade ───────────────────────────────────────────────────────────
 
     private fun scheduleLaserFade(stroke: StrokeData) {
         val r = object : Runnable {
             override fun run() {
-                if (laserStrokes.contains(stroke)) {
-                    invalidate(); laserHandler.postDelayed(this, 33L)
-                }
+                if (laserStrokes.contains(stroke)) { invalidate(); laserHandler.postDelayed(this, 33L) }
             }
         }
         laserHandler.post(r)
-        laserHandler.postDelayed({
-            laserStrokes.remove(stroke); invalidate()
-        }, LASER_FADE_MS)
+        laserHandler.postDelayed({ laserStrokes.remove(stroke); invalidate() }, LASER_FADE_MS)
     }
 }
