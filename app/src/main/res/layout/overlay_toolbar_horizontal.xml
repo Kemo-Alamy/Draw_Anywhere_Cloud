@@ -21,10 +21,10 @@
         android:src="@drawable/ic_eye"
         android:tint="@color/toolbar_icon_default"
         android:scaleType="fitCenter"
-        android:background="@android:color/transparent"
+        android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/cd_btn_hide" />
 
-    <!-- ② Undo -->
+    <!-- ② Undo (يبدأ باهت لحد ما فيه رسم) -->
     <ImageView
         android:id="@+id/btn_undo"
         android:layout_width="46dp"
@@ -33,7 +33,9 @@
         android:src="@drawable/ic_undo"
         android:tint="@color/toolbar_icon_default"
         android:scaleType="fitCenter"
-        android:background="@android:color/transparent"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:alpha="0.35"
+        android:enabled="false"
         android:contentDescription="@string/cd_btn_undo" />
 
     <!-- ③ Color Dot -->
@@ -52,18 +54,17 @@
             android:background="@color/toolbar_dot_red" />
     </FrameLayout>
 
-    <!-- ④ Finger Indicator -->
+    <!-- ④ Finger — زرار حقيقي يبدل Touch Pass-Through -->
     <ImageView
-        android:id="@+id/view_finger_indicator"
+        android:id="@+id/btn_finger"
         android:layout_width="46dp"
         android:layout_height="46dp"
         android:padding="10dp"
         android:src="@drawable/ic_finger"
         android:tint="@color/toolbar_icon_default"
         android:scaleType="fitCenter"
-        android:background="@android:color/transparent"
-        android:importantForAccessibility="no"
-        android:contentDescription="@null" />
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/cd_btn_finger" />
 
     <!-- ⑤ Settings -->
     <ImageView
@@ -74,7 +75,7 @@
         android:src="@drawable/ic_settings"
         android:tint="@color/toolbar_icon_default"
         android:scaleType="fitCenter"
-        android:background="@android:color/transparent"
+        android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/cd_btn_settings" />
 
 </LinearLayout>
