@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- ألوان التطبيق الأساسية -->
     <color name="colorPrimary">#FFB73A3A</color>
     <color name="colorPrimaryVariant">#FF8B0000</color>
     <color name="colorOnPrimary">#FFFFFFFF</color>
@@ -18,6 +17,8 @@
     <color name="toolbar_bg">#E8141414</color>
     <color name="toolbar_icon_default">#FFFFFFFF</color>
     <color name="toolbar_icon_active">#FFFF4444</color>
+    <!-- ✅ جديد — لون أيقونة اليد لما Touch Pass-Through شغّال -->
+    <color name="toolbar_icon_passthrough_active">#FF2E9EFF</color>
     <color name="toolbar_dot_red">#FFDD1111</color>
     <color name="toolbar_divider">#44FFFFFF</color>
     <color name="toolbar_lock_icon">#FFFFA500</color>
@@ -44,7 +45,7 @@
     <color name="btn_quit_bg">#FF1E1E1E</color>
     <color name="btn_quit_text">#FFFF4444</color>
 
-    <!-- Settings toggles (Horizontal/Vertical) -->
+    <!-- Settings toggles -->
     <color name="setting_selected_bg">#FFFF4444</color>
     <color name="setting_selected_text">#FFFFFFFF</color>
     <color name="setting_unselected_bg">#FF252525</color>
@@ -61,7 +62,7 @@
     <color name="hsv_hex_text">#FFFFFFFF</color>
     <color name="hsv_slider_h_start">#FFFF0000</color>
 
-    <!-- Preset Color Palette (4 rows × 5 cols = 20 colors) -->
+    <!-- Preset Color Palette -->
     <color name="preset_01">#FFFF0000</color>
     <color name="preset_02">#FFFF6600</color>
     <color name="preset_03">#FFFF9900</color>
@@ -83,10 +84,7 @@
     <color name="preset_19">#FF333333</color>
     <color name="preset_20">#FF000000</color>
 
-    <!-- Laser stroke fading color -->
     <color name="laser_color">#FFFF2222</color>
-
-    <!-- Highlighter base alpha overlay -->
     <color name="highlighter_yellow">#80FFFF00</color>
     <color name="highlighter_green">#8000FF88</color>
     <color name="highlighter_blue">#800088FF</color>
