@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Tools Panel — خط أصغر + صفوف أقصر زي التطبيق المرجعي -->
+<!--
+    ✅ عرض مضبوط 130dp بالظبط (مش match_parent ولا wrap على عرض الشاشة)
+    ده المفروض يحل مشكلة الـ Popup اللي بيفرد على عرض الشاشة كله
+-->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="140dp"
+    android:layout_width="130dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/bg_panel"
