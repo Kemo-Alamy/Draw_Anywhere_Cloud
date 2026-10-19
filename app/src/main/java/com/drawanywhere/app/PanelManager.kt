@@ -5,6 +5,8 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.view.*
 import android.widget.*
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.viewpager2.widget.ViewPager2
 
 class PanelManager(
     private val service: DrawingService,
@@ -51,7 +53,6 @@ class PanelManager(
         val v = inflate(R.layout.panel_tools)
         toolsPanelView = v
 
-        // جميع الأدوات مرتبة
         val toolButtons = listOf(
             DrawingTool.PEN           to R.id.tool_pen,
             DrawingTool.MATTE_PEN     to R.id.tool_matte_pen,
@@ -87,10 +88,12 @@ class PanelManager(
         val state = toolStates.getOrPut(tool) { service.appPreferences.getToolState(tool) }
         drawingCanvas.switchTool(tool, state)
         toolbarManager.updateColorDot(state.color)
+        // ✅ تحديث أيقونة زرار الأدوات في الـ Toolbar حسب الأداة المختارة
+        toolbarManager.updateToolIcon(tool)
         dismissPanel(toolsPanelView); toolsPanelView = null
     }
 
-    // ─── Line Style Panel (برمجياً بدون XML) ─────────────────────────────────
+    // ─── Line Style Panel ────────────────────────────────────────────────────
 
     fun showLineStylePanel() {
         dismissAll()
@@ -103,27 +106,22 @@ class PanelManager(
             setPadding(p, (8 * pxD).toInt(), p, (8 * pxD).toInt())
         }
 
-        // عنوان
         container.addView(TextView(service).apply {
-            text      = "Line Style  (Pen)"
+            text = "Line Style  (Pen)"
             setTextColor(service.getColor(R.color.panel_subtext))
-            textSize  = 11f
-            val mb    = (10 * pxD).toInt()
-            setPadding(0, 0, 0, mb)
+            textSize = 11f
+            setPadding(0, 0, 0, (10 * pxD).toInt())
         })
 
         val currentStyle = toolStates[DrawingTool.PEN]?.lineStyle ?: LineStyle.SOLID
-        val styles = LineStyle.entries.toList()
-
-        for (style in styles) {
+        for (style in LineStyle.entries) {
             val isActive = currentStyle == style
-            val btn = TextView(service).apply {
-                text      = style.label
-                textSize  = 14f
-                gravity   = Gravity.CENTER
+            container.addView(TextView(service).apply {
+                text = style.label
+                textSize = 14f
+                gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    (48 * pxD).toInt()
+                    LinearLayout.LayoutParams.MATCH_PARENT, (48 * pxD).toInt()
                 ).apply { bottomMargin = (4 * pxD).toInt() }
                 setBackgroundResource(
                     if (isActive) R.drawable.bg_tool_item_selected
@@ -134,10 +132,8 @@ class PanelManager(
                     else          service.getColor(R.color.tool_item_text_default)
                 )
                 setOnClickListener { selectLineStyle(style) }
-            }
-            container.addView(btn)
+            })
         }
-
         lineStylePanelView = container
         addPanel(container)
     }
@@ -198,8 +194,8 @@ class PanelManager(
             }
         }
 
-        val state       = currentState()
-        val widthLabel  = v.findViewById<TextView>(R.id.label_width_value)
+        val state      = currentState()
+        val widthLabel = v.findViewById<TextView>(R.id.label_width_value)
         v.findViewById<SeekBar>(R.id.seek_width)?.apply {
             max = 95; progress = (state.strokeWidth - 5f).toInt().coerceIn(0, 95)
             widthLabel?.text = "${state.strokeWidth.toInt()}px"
@@ -247,7 +243,6 @@ class PanelManager(
 
         picker?.setColor(drawingCanvas.currentColor)
         tvHex?.text = toHex(drawingCanvas.currentColor)
-
         picker?.onColorChanged = { color -> tvHex?.text = toHex(color) }
 
         val hsv = FloatArray(3)
@@ -271,7 +266,7 @@ class PanelManager(
         addPanel(v)
     }
 
-    // ─── Settings Panel ──────────────────────────────────────────────────────
+    // ─── Settings Panel (ViewPager2 — صفحتين + Dots) ─────────────────────────
 
     fun toggleSettingsPanel() {
         if (settingsPanelView != null) {
@@ -281,24 +276,52 @@ class PanelManager(
     }
 
     private fun showSettingsPanel() {
-        val v     = inflate(R.layout.panel_settings)
+        val v = inflate(R.layout.panel_settings_pager)
         settingsPanelView = v
         val prefs = service.appPreferences
 
-        val btnH = v.findViewById<TextView>(R.id.btn_horizontal)
-        val btnV = v.findViewById<TextView>(R.id.btn_vertical)
+        val pager = v.findViewById<ViewPager2>(R.id.settings_pager)
+        val dot0  = v.findViewById<View>(R.id.dot_0)
+        val dot1  = v.findViewById<View>(R.id.dot_1)
+
+        val adapter = SettingsPagerAdapter(
+            onSettingsPageReady = { page -> bindSettingsPage(page) },
+            onAboutPageReady    = { /* لا حاجة لربط — عرض فقط */ }
+        )
+        pager?.adapter = adapter
+        pager?.offscreenPageLimit = 2
+
+        pager?.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                dot0?.setBackgroundResource(
+                    if (position == 0) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive
+                )
+                dot1?.setBackgroundResource(
+                    if (position == 1) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive
+                )
+            }
+        })
+
+        addPanel(v)
+    }
+
+    /** ربط عناصر صفحة الـ Settings الأولى بعد ما الـ ViewPager يبنيها */
+    private fun bindSettingsPage(page: View) {
+        val prefs = service.appPreferences
+        val btnH  = page.findViewById<TextView>(R.id.btn_horizontal)
+        val btnV  = page.findViewById<TextView>(R.id.btn_vertical)
 
         fun refreshOrient(o: ToolbarOrientation) {
-            val sel   = R.drawable.bg_setting_selected
-            val unsel = R.drawable.bg_setting_unselected
-            val selT  = service.getColor(R.color.setting_selected_text)
-            val unsT  = service.getColor(R.color.setting_unselected_text)
+            val sel = R.drawable.bg_setting_selected
+            val uns = R.drawable.bg_setting_unselected
+            val selT = service.getColor(R.color.setting_selected_text)
+            val unsT = service.getColor(R.color.setting_unselected_text)
             if (o == ToolbarOrientation.HORIZONTAL) {
-                btnH?.setBackgroundResource(sel);   btnH?.setTextColor(selT)
-                btnV?.setBackgroundResource(unsel); btnV?.setTextColor(unsT)
+                btnH?.setBackgroundResource(sel);  btnH?.setTextColor(selT)
+                btnV?.setBackgroundResource(uns);  btnV?.setTextColor(unsT)
             } else {
-                btnV?.setBackgroundResource(sel);   btnV?.setTextColor(selT)
-                btnH?.setBackgroundResource(unsel); btnH?.setTextColor(unsT)
+                btnV?.setBackgroundResource(sel);  btnV?.setTextColor(selT)
+                btnH?.setBackgroundResource(uns);  btnH?.setTextColor(unsT)
             }
         }
         refreshOrient(prefs.toolbarOrientation)
@@ -312,24 +335,23 @@ class PanelManager(
             dismissPanel(settingsPanelView); settingsPanelView = null
         }
 
-        v.findViewById<CheckBox>(R.id.chk_clear_on_hide)?.apply {
+        page.findViewById<CheckBox>(R.id.chk_clear_on_hide)?.apply {
             isChecked = prefs.clearOnHide
             setOnCheckedChangeListener { _, c -> prefs.clearOnHide = c }
         }
-        v.findViewById<CheckBox>(R.id.chk_open_on_start)?.apply {
+        page.findViewById<CheckBox>(R.id.chk_open_on_start)?.apply {
             isChecked = prefs.openOnStart
             setOnCheckedChangeListener { _, c -> prefs.openOnStart = c }
         }
-        v.findViewById<CheckBox>(R.id.chk_finger_drawing)?.apply {
+        page.findViewById<CheckBox>(R.id.chk_finger_drawing)?.apply {
             isChecked = prefs.fingerDrawing
             setOnCheckedChangeListener { _, c ->
                 prefs.fingerDrawing = c; service.refreshCanvasTouchMode()
             }
         }
-        v.findViewById<View>(R.id.btn_quit)?.setOnClickListener {
+        page.findViewById<View>(R.id.btn_quit)?.setOnClickListener {
             dismissAll(); service.stopSelf()
         }
-        addPanel(v)
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -359,9 +381,9 @@ class PanelManager(
     }
 
     private fun buildPanelParams(): WindowManager.LayoutParams {
-        val isH  = service.appPreferences.toolbarOrientation == ToolbarOrientation.HORIZONTAL
-        val pxD  = service.resources.displayMetrics.density
-        val px   = { dp: Int -> (dp * pxD).toInt() }
+        val isH = service.appPreferences.toolbarOrientation == ToolbarOrientation.HORIZONTAL
+        val pxD = service.resources.displayMetrics.density
+        val px  = { dp: Int -> (dp * pxD).toInt() }
         return WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -372,8 +394,8 @@ class PanelManager(
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x       = if (isH) px(30) else px(90)
-            y       = if (isH) px(130) else px(50)
+            x = if (isH) px(30) else px(90)
+            y = if (isH) px(130) else px(50)
         }
     }
 
