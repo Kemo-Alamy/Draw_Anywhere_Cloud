@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- أيقونة خط الكاليجرافي — ريشة مائلة بزاوية -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path
+        android:pathData="M19,4L21,6L8,19L4,20L5,16L18,3Z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M4,20L8,19L6,17L4,20Z"
+        android:fillColor="#FFCCCCCC" />
+</vector>
