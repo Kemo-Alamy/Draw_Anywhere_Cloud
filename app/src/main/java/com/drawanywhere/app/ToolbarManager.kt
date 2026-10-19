@@ -24,7 +24,6 @@ class ToolbarManager(
     private var isFaded       = false
     private var canvasVisible = true
 
-    // Drag
     private var dragStartRawX  = 0f
     private var dragStartRawY  = 0f
     private var windowInitX    = 0
@@ -32,10 +31,24 @@ class ToolbarManager(
     private var isDragging     = false
     private val DRAG_THRESHOLD = 10f
 
-    // Long press على زرار الأدوات (3 ثواني → يفتح نمط الخط)
-    private val longPressHandler     = Handler(Looper.getMainLooper())
-    private var longPressTriggered   = false
-    private val LONG_PRESS_MS        = 3000L
+    private val longPressHandler   = Handler(Looper.getMainLooper())
+    private var longPressTriggered = false
+    private val LONG_PRESS_MS      = 3000L
+
+    // ✅ خريطة أداة ← أيقونة — بيتغير شكل زرار الأدوات حسب الأداة المختارة
+    private val toolIconMap = mapOf(
+        DrawingTool.PEN           to R.drawable.ic_pen,
+        DrawingTool.MATTE_PEN     to R.drawable.ic_matte_pen,
+        DrawingTool.LASER         to R.drawable.ic_laser,
+        DrawingTool.BRUSH         to R.drawable.ic_brush,
+        DrawingTool.HIGHLIGHTER   to R.drawable.ic_highlighter,
+        DrawingTool.CALLIGRAPHY   to R.drawable.ic_calligraphy,
+        DrawingTool.LASSO         to R.drawable.ic_lasso,
+        DrawingTool.RECTANGLE     to R.drawable.ic_rectangle,
+        DrawingTool.ELLIPSE       to R.drawable.ic_ellipse,
+        DrawingTool.STROKE_ERASER to R.drawable.ic_stroke_eraser,
+        DrawingTool.PIXEL_ERASER  to R.drawable.ic_pixel_eraser
+    )
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -44,7 +57,7 @@ class ToolbarManager(
     fun destroy() {
         fadeHandler.removeCallbacksAndMessages(null)
         longPressHandler.removeCallbacksAndMessages(null)
-        try { toolbarView?.let { windowManager.removeView(it) } } catch (e: Exception) { }
+        try { toolbarView?.let { windowManager.removeView(it) } } catch (_: Exception) { }
         toolbarView = null; toolbarParams = null
     }
 
@@ -60,6 +73,12 @@ class ToolbarManager(
     fun updateFingerIndicator(enabled: Boolean) {
         toolbarView?.findViewById<ImageView>(R.id.view_finger_indicator)
             ?.alpha = if (enabled) 1f else 0.35f
+    }
+
+    /** ✅ تحديث أيقونة زرار الأدوات حسب الأداة المختارة حالياً */
+    fun updateToolIcon(tool: DrawingTool) {
+        val iconRes = toolIconMap[tool] ?: R.drawable.ic_pen
+        toolbarView?.findViewById<ImageView>(R.id.btn_tools)?.setImageResource(iconRes)
     }
 
     // ─── Inflate ──────────────────────────────────────────────────────────────
@@ -88,6 +107,10 @@ class ToolbarManager(
         view.findViewById<ImageView>(R.id.view_finger_indicator)
             ?.alpha = if (service.appPreferences.fingerDrawing) 1f else 0.35f
 
+        // ✅ تطبيق الأيقونة الصحيحة عند أول ظهور للـ Toolbar
+        view.findViewById<ImageView>(R.id.btn_tools)
+            ?.setImageResource(toolIconMap[drawingCanvas.currentTool] ?: R.drawable.ic_pen)
+
         setupButtons(view)
         setupDrag(view, params)
         scheduleIdleFade()
@@ -98,29 +121,23 @@ class ToolbarManager(
 
     private fun setupButtons(view: View) {
 
-        // ① Eye — يخفي/يُظهر الـ Canvas ويُصغّر الـ Toolbar
         view.findViewById<ImageView>(R.id.btn_hide)?.setOnClickListener {
             resetFadeTimer(); toggleCanvas()
         }
 
-        // ② Undo
         view.findViewById<View>(R.id.btn_undo)?.setOnClickListener {
             resetFadeTimer(); drawingCanvas.undo()
         }
 
-        // ③ Clear (vertical only)
         view.findViewById<View>(R.id.btn_clear)?.setOnClickListener {
             resetFadeTimer(); drawingCanvas.clearAll()
         }
 
-        // ④ Add Image (vertical only)
         view.findViewById<View>(R.id.btn_add_image)?.setOnClickListener {
             resetFadeTimer(); panelManager.dismissAll()
             service.launchImagePicker()
         }
 
-        // ⑤ Tools — click عادي يفتح الأدوات
-        //            ضغط 3 ثواني يفتح نمط الخط
         view.findViewById<View>(R.id.btn_tools)?.let { btn ->
             btn.setOnTouchListener { _, event ->
                 when (event.actionMasked) {
@@ -148,18 +165,16 @@ class ToolbarManager(
             }
         }
 
-        // ⑥ Color Dot
         view.findViewById<View>(R.id.view_color_dot)?.setOnClickListener {
             resetFadeTimer(); panelManager.toggleColorPanel()
         }
 
-        // ⑦ Settings
         view.findViewById<View>(R.id.btn_settings)?.setOnClickListener {
             resetFadeTimer(); panelManager.toggleSettingsPanel()
         }
     }
 
-    // ─── Toggle Canvas + Collapse Toolbar ────────────────────────────────────
+    // ─── Toggle Canvas + Collapse ─────────────────────────────────────────────
 
     private fun toggleCanvas() {
         canvasVisible = !canvasVisible
@@ -173,10 +188,6 @@ class ToolbarManager(
         collapseToolbar(!canvasVisible)
     }
 
-    /**
-     * لما الـ Canvas مخفي → يُخفي كل حاجة في الـ Toolbar غير زرار العين
-     * الـ Toolbar يبقى صغير زي دايرة
-     */
     private fun collapseToolbar(collapse: Boolean) {
         val v = toolbarView ?: return
         val vis = if (collapse) View.GONE else View.VISIBLE
@@ -187,7 +198,6 @@ class ToolbarManager(
             R.id.toolbar_divider
         ).forEach { id -> v.findViewById<View>(id)?.visibility = vis }
 
-        // تغيير لون العين: أحمر لما Canvas مخفي، أبيض لما شغال
         v.findViewById<ImageView>(R.id.btn_hide)?.setColorFilter(
             if (collapse)
                 service.getColor(R.color.toolbar_icon_active)
