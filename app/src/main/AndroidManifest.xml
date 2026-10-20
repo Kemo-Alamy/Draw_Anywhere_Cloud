@@ -1,14 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- إذن الرسم فوق التطبيقات الأخرى -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- إذن الـ Foreground Service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <!-- إذن الإشعارات (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- إذن الصور (Android 13+) -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+    <!-- إذن التخزين (Android 12 وأقل) -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+
+    <!-- ✅ إذن الكتابة في التخزين — لازم لملف الـ Crash Log -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+
+    <!-- ✅ إذن إدارة كل ملفات التخزين — يضمن كتابة ملف الـ Crash Log في Download على Android 10+ -->
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
 
     <application
         android:allowBackup="false"
@@ -18,6 +38,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DrawAnywhere">
 
+        <!--
+            MainActivity شفافة بالكامل — وظيفتها الوحيدة:
+            تشغيل/إيقاف الـ DrawingService عند كل نقرة على الأيقونة
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -42,6 +66,10 @@
             android:launchMode="singleTask"
             android:excludeFromRecents="true" />
 
+        <!--
+            DrawingService — الـ Foreground Service اللي بيتحكم
+            في كل الـ Overlay Windows (Toolbar + Canvas)
+        -->
         <service
             android:name=".DrawingService"
             android:exported="false"
