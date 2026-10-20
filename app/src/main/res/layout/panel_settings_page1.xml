@@ -1,135 +1,141 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- صفحة 1: Settings الأساسية -->
-<LinearLayout
+<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="200dp"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingTop="8dp"
-    android:paddingBottom="4dp">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/panel_settings"
-        android:textColor="@color/panel_subtext"
-        android:textSize="11sp"
-        android:fontFamily="sans-serif-medium"
-        android:layout_marginStart="14dp"
-        android:layout_marginBottom="8dp"
-        android:textAllCaps="true"
-        android:letterSpacing="0.08" />
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:scrollbars="none"
+    android:overScrollMode="never">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
-        android:layout_marginBottom="4dp">
+        android:orientation="vertical"
+        android:paddingTop="10dp"
+        android:paddingBottom="6dp">
 
         <TextView
-            android:id="@+id/btn_horizontal"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/panel_settings"
+            android:textColor="@color/panel_subtext"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginStart="14dp"
+            android:layout_marginBottom="8dp"
+            android:textAllCaps="true"
+            android:letterSpacing="0.08" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:id="@+id/btn_horizontal"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/settings_horizontal"
+                android:textSize="13sp"
+                android:background="@drawable/bg_setting_selected"
+                android:textColor="@color/setting_selected_text"
+                android:layout_marginEnd="4dp"
+                android:fontFamily="sans-serif" />
+
+            <TextView
+                android:id="@+id/btn_vertical"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="@string/settings_vertical"
+                android:textSize="13sp"
+                android:background="@drawable/bg_setting_unselected"
+                android:textColor="@color/setting_unselected_text"
+                android:fontFamily="sans-serif" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/panel_section_divider"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="10dp">
+            <TextView
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings_clear_on_hide"
+                android:textColor="@color/panel_text" android:textSize="13sp" />
+            <CheckBox
+                android:id="@+id/chk_clear_on_hide"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:buttonTint="@color/setting_toggle_tint" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="10dp">
+            <TextView
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings_open_on_start"
+                android:textColor="@color/panel_text" android:textSize="13sp" />
+            <CheckBox
+                android:id="@+id/chk_open_on_start"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:buttonTint="@color/setting_toggle_tint" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="10dp">
+            <TextView
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings_finger_drawing"
+                android:textColor="@color/panel_text" android:textSize="13sp" />
+            <CheckBox
+                android:id="@+id/chk_finger_drawing"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:buttonTint="@color/setting_toggle_tint" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/panel_section_divider"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/btn_quit"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
             android:gravity="center"
-            android:text="@string/settings_horizontal"
-            android:textSize="13sp"
-            android:background="@drawable/bg_setting_selected"
-            android:textColor="@color/setting_selected_text"
-            android:layout_marginEnd="4dp"
+            android:text="@string/settings_quit"
+            android:textColor="@color/btn_quit_text"
+            android:textSize="14sp"
             android:fontFamily="sans-serif" />
 
-        <TextView
-            android:id="@+id/btn_vertical"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="@string/settings_vertical"
-            android:textSize="13sp"
-            android:background="@drawable/bg_setting_unselected"
-            android:textColor="@color/setting_unselected_text"
-            android:fontFamily="sans-serif" />
     </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/panel_section_divider"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="14dp"
-        android:paddingEnd="10dp">
-        <TextView
-            android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/settings_clear_on_hide"
-            android:textColor="@color/panel_text" android:textSize="13sp" />
-        <CheckBox
-            android:id="@+id/chk_clear_on_hide"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:buttonTint="@color/setting_toggle_tint" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="14dp"
-        android:paddingEnd="10dp">
-        <TextView
-            android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/settings_open_on_start"
-            android:textColor="@color/panel_text" android:textSize="13sp" />
-        <CheckBox
-            android:id="@+id/chk_open_on_start"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:buttonTint="@color/setting_toggle_tint" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="14dp"
-        android:paddingEnd="10dp">
-        <TextView
-            android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/settings_finger_drawing"
-            android:textColor="@color/panel_text" android:textSize="13sp" />
-        <CheckBox
-            android:id="@+id/chk_finger_drawing"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:buttonTint="@color/setting_toggle_tint" />
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/panel_section_divider"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp" />
-
-    <TextView
-        android:id="@+id/btn_quit"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:gravity="center"
-        android:text="@string/settings_quit"
-        android:textColor="@color/btn_quit_text"
-        android:textSize="14sp"
-        android:fontFamily="sans-serif" />
-
-</LinearLayout>
+</ScrollView>
