@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ✅ حاوية موحدة بحجم ثابت 240×330dp
+    تُستخدم لكل الـ Popups اللي فيها صفحتين (Settings, Color)
+    الـ ViewPager2 بياخد كل المساحة ماعدا شريط الـ Dots الثابت تحت
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="@dimen/popup_unified_width"
+    android:layout_height="@dimen/popup_unified_height"
+    android:orientation="vertical"
+    android:background="@drawable/bg_popup_unified"
+    android:clipToOutline="true"
+    android:elevation="8dp">
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/unified_pager"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/popup_dots_row_height"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <View
+            android:id="@+id/unified_dot_0"
+            android:layout_width="7dp"
+            android:layout_height="7dp"
+            android:layout_marginEnd="5dp"
+            android:background="@drawable/bg_dot_active" />
+
+        <View
+            android:id="@+id/unified_dot_1"
+            android:layout_width="7dp"
+            android:layout_height="7dp"
+            android:background="@drawable/bg_dot_inactive" />
+
+    </LinearLayout>
+
+</LinearLayout>
