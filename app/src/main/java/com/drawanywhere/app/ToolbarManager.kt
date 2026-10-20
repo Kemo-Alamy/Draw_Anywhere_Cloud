@@ -23,7 +23,6 @@ class ToolbarManager(
     private val FADE_DELAY_MS = 3000L
     private var isFaded       = false
     private var canvasVisible = true
-    private var hasContent    = false
 
     private var dragStartRawX  = 0f
     private var dragStartRawY  = 0f
@@ -70,19 +69,21 @@ class ToolbarManager(
     }
 
     /**
-     * ✅ يتحكم في شكل زرار اليد (Finger):
-     * لونه أزرق/مميز لما Touch Pass-Through شغّال (يعني الرسم معطّل)
-     * ولونه عادي لما الرسم شغّال
+     * ✅ تبديل أيقونة اليد بالكامل (مش بس لونها):
+     * drawingEnabled=true  → ic_finger (الرسم شغال)
+     * drawingEnabled=false → ic_touch_passthrough (اللمس بيعدي للشاشة تحت)
      */
     fun updateFingerIndicator(drawingEnabled: Boolean) {
         val icon = toolbarView?.findViewById<ImageView>(R.id.btn_finger) ?: return
-        icon.setColorFilter(
-            if (drawingEnabled) service.getColor(R.color.toolbar_icon_default)
-            else                service.getColor(R.color.toolbar_icon_passthrough_active)
-        )
+        if (drawingEnabled) {
+            icon.setImageResource(R.drawable.ic_finger)
+            icon.setColorFilter(service.getColor(R.color.toolbar_icon_default))
+        } else {
+            icon.setImageResource(R.drawable.ic_touch_passthrough)
+            icon.setColorFilter(service.getColor(R.color.toolbar_icon_passthrough_active))
+        }
     }
 
-    /** ✅ تحديث حالة Undo/Trash — باهت لو الـ Canvas فاضي، واضح لو فيه محتوى */
     fun updateContentState(hasContentNow: Boolean) {
         hasContent = hasContentNow
         val v = toolbarView ?: return
@@ -97,6 +98,8 @@ class ToolbarManager(
         val iconRes = toolIconMap[tool] ?: R.drawable.ic_pen
         toolbarView?.findViewById<ImageView>(R.id.btn_tools)?.setImageResource(iconRes)
     }
+
+    private var hasContent = false
 
     // ─── Inflate ──────────────────────────────────────────────────────────────
 
@@ -128,7 +131,6 @@ class ToolbarManager(
         scheduleIdleFade()
         windowManager.addView(view, params)
 
-        // ✅ تطبيق الحالة الحالية فوراً بعد الإضافة للشاشة
         updateFingerIndicator(service.appPreferences.fingerDrawing)
         updateContentState(hasContent)
     }
@@ -137,18 +139,15 @@ class ToolbarManager(
 
     private fun setupButtons(view: View) {
 
-        // ① Eye — يخفي/يُظهر الرسمة فقط (الـ Toolbar نفسه بيفضل زي ما هو، مش بيتحول لشكل تاني)
         view.findViewById<ImageView>(R.id.btn_hide)?.setOnClickListener {
             resetFadeTimer(); toggleCanvasVisibility()
         }
 
-        // ② Undo — شغال بس لو فيه محتوى
         view.findViewById<ImageView>(R.id.btn_undo)?.setOnClickListener {
             if (!hasContent) return@setOnClickListener
             resetFadeTimer(); drawingCanvas.undo()
         }
 
-        // ③ Clear/Trash — شغال بس لو فيه محتوى، وبعد المسح بيرجع باهت فوراً
         view.findViewById<ImageView>(R.id.btn_clear)?.setOnClickListener {
             if (!hasContent) return@setOnClickListener
             resetFadeTimer(); drawingCanvas.clearAll()
@@ -159,7 +158,6 @@ class ToolbarManager(
             service.launchImagePicker()
         }
 
-        // ④ Tools — ضغط عادي = قائمة الأدوات | ضغط 3 ثواني = نمط الخط
         view.findViewById<View>(R.id.btn_tools)?.let { btn ->
             btn.setOnTouchListener { _, event ->
                 when (event.actionMasked) {
@@ -185,12 +183,10 @@ class ToolbarManager(
             }
         }
 
-        // ⑤ Color Dot — ضغط عادي يفتح Color Panel
         view.findViewById<View>(R.id.view_color_dot)?.setOnClickListener {
             resetFadeTimer(); panelManager.toggleColorPanel()
         }
 
-        // ⑥ Finger — يبدل Touch Pass-Through فعلياً (مش شكلي)
         view.findViewById<ImageView>(R.id.btn_finger)?.setOnClickListener {
             resetFadeTimer()
             val newState = !service.appPreferences.fingerDrawing
@@ -198,13 +194,12 @@ class ToolbarManager(
             service.refreshCanvasTouchMode()
         }
 
-        // ⑦ Settings
         view.findViewById<View>(R.id.btn_settings)?.setOnClickListener {
             resetFadeTimer(); panelManager.toggleSettingsPanel()
         }
     }
 
-    // ─── Toggle Canvas Visibility (Eye) ───────────────────────────────────────
+    // ─── Toggle Canvas Visibility (Eye) — Collapse / Expand كامل ─────────────
 
     private fun toggleCanvasVisibility() {
         canvasVisible = !canvasVisible
@@ -213,9 +208,30 @@ class ToolbarManager(
         drawingCanvas.visibility = if (canvasVisible) View.VISIBLE else View.INVISIBLE
         service.setCanvasTouchable(canvasVisible && service.appPreferences.fingerDrawing)
 
-        // ✅ العين نفسها بتتغير شكل (مفتوحة/مقفولة) بدل ما التولبار كله يتحول لشكل غريب
         val eyeIcon = toolbarView?.findViewById<ImageView>(R.id.btn_hide)
         eyeIcon?.setImageResource(if (canvasVisible) R.drawable.ic_eye else R.drawable.ic_eye_closed)
+
+        // ✅ هنا السطر اللي كان ناقص — ده اللي بيخلي التولبار فعلياً يتلم لدائرة صغيرة
+        collapseToolbar(!canvasVisible)
+    }
+
+    /**
+     * ✅ يخفي كل الأزرار ماعدا العين، ويبدل خلفية الـ Toolbar لدائرة صغيرة
+     * android:animateLayoutChanges="true" في الـ XML بيعمل الـ Animation تلقائي وسلس
+     */
+    private fun collapseToolbar(collapse: Boolean) {
+        val v = toolbarView ?: return
+        val vis = if (collapse) View.GONE else View.VISIBLE
+        listOf(
+            R.id.btn_undo, R.id.btn_clear, R.id.btn_add_image,
+            R.id.btn_tools, R.id.color_dot_container,
+            R.id.btn_finger, R.id.btn_settings,
+            R.id.toolbar_divider
+        ).forEach { id -> v.findViewById<View>(id)?.visibility = vis }
+
+        v.setBackgroundResource(
+            if (collapse) R.drawable.bg_toolbar_collapsed else R.drawable.bg_toolbar
+        )
     }
 
     // ─── Drag ─────────────────────────────────────────────────────────────────
