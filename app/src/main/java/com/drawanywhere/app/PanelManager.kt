@@ -36,7 +36,7 @@ class PanelManager(
         settingsPanelView = null; lineStylePanelView = null
     }
 
-    // ─── Tools Panel (نفس مقاس popup_unified بدون Pager) ─────────────────────
+    // ─── Tools Panel (✅ بقى نفس حجم Settings — Pager بصفحتين: قائمة + Sliders) ──
 
     fun toggleToolsPanel() {
         if (toolsPanelView != null) {
@@ -46,12 +46,31 @@ class PanelManager(
     }
 
     private fun showToolsPanel() {
-        val container = inflate(R.layout.popup_unified_container_single)
-        toolsPanelView = container
+        val v = inflate(R.layout.popup_unified_container)
+        toolsPanelView = v
 
-        val innerContainer = container.findViewById<LinearLayout>(R.id.unified_single_content)
-        LayoutInflater.from(service).inflate(R.layout.panel_tools, innerContainer, true)
+        val pager = v.findViewById<ViewPager2>(R.id.unified_pager)
+        val dot0  = v.findViewById<View>(R.id.unified_dot_0)
+        val dot1  = v.findViewById<View>(R.id.unified_dot_1)
 
+        val adapter = ToolsPagerAdapter(
+            onPage1Ready = { page -> bindToolsPage1(page) },
+            onPage2Ready = { page -> bindToolsPage2(page) }
+        )
+        pager?.adapter = adapter
+        pager?.offscreenPageLimit = 2
+
+        pager?.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                dot0?.setBackgroundResource(if (position == 0) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
+                dot1?.setBackgroundResource(if (position == 1) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
+            }
+        })
+
+        addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON)
+    }
+
+    private fun bindToolsPage1(page: View) {
         val toolButtons = listOf(
             DrawingTool.PEN           to R.id.tool_pen,
             DrawingTool.MATTE_PEN     to R.id.tool_matte_pen,
@@ -67,7 +86,7 @@ class PanelManager(
         )
 
         for ((tool, id) in toolButtons) {
-            container.findViewById<TextView>(id)?.let { btn ->
+            page.findViewById<TextView>(id)?.let { btn ->
                 val isActive = drawingCanvas.currentTool == tool
                 btn.setBackgroundResource(
                     if (isActive) R.drawable.bg_tool_item_selected else R.drawable.bg_tool_item_default
@@ -79,7 +98,44 @@ class PanelManager(
                 btn.setOnClickListener { selectTool(tool) }
             }
         }
-        addPanel(container, anchorTo = PanelAnchor.TOOLS_BUTTON)
+    }
+
+    private fun bindToolsPage2(page: View) {
+        val state = currentState()
+        page.findViewById<TextView>(R.id.tv_tool_name)?.text = drawingCanvas.currentTool.displayName
+
+        val widthLabel = page.findViewById<TextView>(R.id.label_tool_width_value)
+        page.findViewById<SeekBar>(R.id.seek_tool_width)?.apply {
+            max = 95; progress = (state.strokeWidth - 5f).toInt().coerceIn(0, 95)
+            widthLabel?.text = "${state.strokeWidth.toInt()}px"
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) {
+                    val w = p + 5f
+                    widthLabel?.text = "${w.toInt()}px"
+                    drawingCanvas.currentStrokeWidth = w
+                    currentState().strokeWidth = w; persistState()
+                }
+                override fun onStartTrackingTouch(s: SeekBar?) {}
+                override fun onStopTrackingTouch(s: SeekBar?) {}
+            })
+        }
+
+        val opacityLabel = page.findViewById<TextView>(R.id.label_tool_opacity_value)
+        page.findViewById<SeekBar>(R.id.seek_tool_opacity)?.apply {
+            val pct = (state.opacity / 255f * 100).toInt()
+            max = 100; progress = pct
+            opacityLabel?.text = "$pct%"
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) {
+                    val alpha = (p / 100f * 255).toInt()
+                    opacityLabel?.text = "$p%"
+                    drawingCanvas.currentOpacity = alpha
+                    currentState().opacity = alpha; persistState()
+                }
+                override fun onStartTrackingTouch(s: SeekBar?) {}
+                override fun onStopTrackingTouch(s: SeekBar?) {}
+            })
+        }
     }
 
     private fun selectTool(tool: DrawingTool) {
@@ -376,10 +432,6 @@ class PanelManager(
 
     private enum class PanelAnchor { TOOLS_BUTTON, COLOR_DOT, SETTINGS_BUTTON }
 
-    /**
-     * ✅ تثبيت الـ Popup جنب الزرار المسؤول عنه مباشرة
-     * كل الـ Popups دلوقتي بنفس الحجم بالظبط (240×330dp) فمفيش قفزة في الحجم بينهم
-     */
     private fun buildPanelParams(anchorTo: PanelAnchor): WindowManager.LayoutParams {
         val isH = service.appPreferences.toolbarOrientation == ToolbarOrientation.HORIZONTAL
         val pxD = service.resources.displayMetrics.density
