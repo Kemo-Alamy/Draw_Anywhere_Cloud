@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ✅ نفس المقاس 240×330dp بالظبط زي الحاوية التانية
+    بدون ViewPager — بس ScrollView لو المحتوى زاد عن المساحة
+-->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="@dimen/popup_unified_width"
+    android:layout_height="@dimen/popup_unified_height"
+    android:background="@drawable/bg_popup_unified"
+    android:clipToOutline="true"
+    android:elevation="8dp"
+    android:scrollbars="none"
+    android:overScrollMode="never">
+
+    <LinearLayout
+        android:id="@+id/unified_single_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp" />
+
+</ScrollView>
