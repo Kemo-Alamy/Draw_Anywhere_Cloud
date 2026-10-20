@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ✅ توحيد حجم كل الـ Popups: Settings / Color / Tools / Pen -->
+    <dimen name="popup_unified_width">240dp</dimen>
+    <dimen name="popup_unified_height">330dp</dimen>
+    <dimen name="popup_unified_radius">18dp</dimen>
+    <dimen name="popup_dots_row_height">24dp</dimen>
+</resources>
