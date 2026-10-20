@@ -1,81 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- صفحة 1: الألوان الجاهزة + Width/Opacity Sliders -->
-<LinearLayout
+<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="220dp"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:scrollbars="none"
+    android:overScrollMode="never">
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="10dp">
+        android:orientation="vertical"
+        android:padding="12dp">
 
-        <FrameLayout
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginEnd="10dp"
-            android:background="@drawable/bg_color_dot_ring"
-            android:clipToOutline="true">
-            <View
-                android:id="@+id/view_current_color"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@color/toolbar_dot_red" />
-        </FrameLayout>
-
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/panel_color"
-            android:textColor="@color/panel_text"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="10dp">
+
+            <FrameLayout
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="10dp"
+                android:background="@drawable/bg_color_dot_ring"
+                android:clipToOutline="true">
+                <View
+                    android:id="@+id/view_current_color"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@color/toolbar_dot_red" />
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/panel_color"
+                android:textColor="@color/panel_text"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="2dp">
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_01" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_01"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_02" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_02"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_03" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_03"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_04" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_04"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_05" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_05"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_06" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_06"/></FrameLayout>
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="2dp">
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_07" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_07"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_08" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_08"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_09" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_09"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_10" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_10"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_11" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_11"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_12" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_12"/></FrameLayout>
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_16" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_16"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_17" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_17"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_18" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_18"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_19" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_19"/></FrameLayout>
+            <FrameLayout android:layout_width="27dp" android:layout_height="27dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_20" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_20"/></FrameLayout>
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/panel_section_divider" android:layout_marginBottom="8dp"/>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/panel_tool_controls" android:textColor="@color/panel_subtext" android:textSize="11sp" android:layout_marginBottom="8dp"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
+            <TextView android:layout_width="40dp" android:layout_height="wrap_content" android:text="@string/label_width" android:textColor="@color/panel_text" android:textSize="11sp"/>
+            <SeekBar android:id="@+id/seek_width" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:max="95" android:progress="3" android:progressTint="@color/slider_track_active" android:thumbTint="@color/slider_thumb_color" android:progressBackgroundTint="@color/slider_track_inactive"/>
+            <TextView android:id="@+id/label_width_value" android:layout_width="34dp" android:layout_height="wrap_content" android:text="8px" android:textColor="@color/panel_text" android:textSize="10sp" android:gravity="end"/>
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="40dp" android:layout_height="wrap_content" android:text="@string/label_opacity" android:textColor="@color/panel_text" android:textSize="11sp"/>
+            <SeekBar android:id="@+id/seek_opacity" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:max="100" android:progress="100" android:progressTint="@color/slider_track_active" android:thumbTint="@color/slider_thumb_color" android:progressBackgroundTint="@color/slider_track_inactive"/>
+            <TextView android:id="@+id/label_opacity_value" android:layout_width="34dp" android:layout_height="wrap_content" android:text="100%" android:textColor="@color/panel_text" android:textSize="10sp" android:gravity="end"/>
+        </LinearLayout>
+
     </LinearLayout>
-
-    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="2dp">
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_01" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_01"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_02" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_02"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_03" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_03"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_04" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_04"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_05" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_05"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_06" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_06"/></FrameLayout>
-    </LinearLayout>
-
-    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="2dp">
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_07" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_07"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_08" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_08"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_09" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_09"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_10" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_10"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_11" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_11"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_12" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_12"/></FrameLayout>
-    </LinearLayout>
-
-    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_16" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_16"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_17" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_17"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_18" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_18"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_19" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_19"/></FrameLayout>
-        <FrameLayout android:layout_width="30dp" android:layout_height="30dp" android:layout_margin="2dp" android:background="@drawable/bg_swatch_mask" android:clipToOutline="true"><View android:id="@+id/color_20" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/preset_20"/></FrameLayout>
-    </LinearLayout>
-
-    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/panel_section_divider" android:layout_marginBottom="8dp"/>
-
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/panel_tool_controls" android:textColor="@color/panel_subtext" android:textSize="11sp" android:layout_marginBottom="8dp"/>
-
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
-        <TextView android:layout_width="40dp" android:layout_height="wrap_content" android:text="@string/label_width" android:textColor="@color/panel_text" android:textSize="11sp"/>
-        <SeekBar android:id="@+id/seek_width" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:max="95" android:progress="3" android:progressTint="@color/slider_track_active" android:thumbTint="@color/slider_thumb_color" android:progressBackgroundTint="@color/slider_track_inactive"/>
-        <TextView android:id="@+id/label_width_value" android:layout_width="34dp" android:layout_height="wrap_content" android:text="8px" android:textColor="@color/panel_text" android:textSize="10sp" android:gravity="end"/>
-    </LinearLayout>
-
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-        <TextView android:layout_width="40dp" android:layout_height="wrap_content" android:text="@string/label_opacity" android:textColor="@color/panel_text" android:textSize="11sp"/>
-        <SeekBar android:id="@+id/seek_opacity" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:max="100" android:progress="100" android:progressTint="@color/slider_track_active" android:thumbTint="@color/slider_thumb_color" android:progressBackgroundTint="@color/slider_track_inactive"/>
-        <TextView android:id="@+id/label_opacity_value" android:layout_width="34dp" android:layout_height="wrap_content" android:text="100%" android:textColor="@color/panel_text" android:textSize="10sp" android:gravity="end"/>
-    </LinearLayout>
-
-</LinearLayout>
+</ScrollView>
