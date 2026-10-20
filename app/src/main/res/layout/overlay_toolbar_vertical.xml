@@ -10,7 +10,8 @@
     android:paddingEnd="4dp"
     android:paddingTop="8dp"
     android:paddingBottom="8dp"
-    android:elevation="8dp">
+    android:elevation="8dp"
+    android:animateLayoutChanges="true">
 
     <!-- ① Eye -->
     <ImageView
@@ -94,8 +95,9 @@
         android:layout_marginTop="3dp"
         android:layout_marginBottom="3dp" />
 
-    <!-- ⑥ Color Dot -->
+    <!-- ⑥ Color Dot — ✅ أضفنا id للـ FrameLayout نفسه -->
     <FrameLayout
+        android:id="@+id/color_dot_container"
         android:layout_width="32dp"
         android:layout_height="32dp"
         android:layout_marginTop="4dp"
