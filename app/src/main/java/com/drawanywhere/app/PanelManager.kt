@@ -36,7 +36,7 @@ class PanelManager(
         settingsPanelView = null; lineStylePanelView = null
     }
 
-    // ─── Tools Panel ─────────────────────────────────────────────────────────
+    // ─── Tools Panel (نفس مقاس popup_unified بدون Pager) ─────────────────────
 
     fun toggleToolsPanel() {
         if (toolsPanelView != null) {
@@ -46,8 +46,11 @@ class PanelManager(
     }
 
     private fun showToolsPanel() {
-        val v = inflate(R.layout.panel_tools)
-        toolsPanelView = v
+        val container = inflate(R.layout.popup_unified_container_single)
+        toolsPanelView = container
+
+        val innerContainer = container.findViewById<LinearLayout>(R.id.unified_single_content)
+        LayoutInflater.from(service).inflate(R.layout.panel_tools, innerContainer, true)
 
         val toolButtons = listOf(
             DrawingTool.PEN           to R.id.tool_pen,
@@ -64,7 +67,7 @@ class PanelManager(
         )
 
         for ((tool, id) in toolButtons) {
-            v.findViewById<TextView>(id)?.let { btn ->
+            container.findViewById<TextView>(id)?.let { btn ->
                 val isActive = drawingCanvas.currentTool == tool
                 btn.setBackgroundResource(
                     if (isActive) R.drawable.bg_tool_item_selected else R.drawable.bg_tool_item_default
@@ -76,8 +79,7 @@ class PanelManager(
                 btn.setOnClickListener { selectTool(tool) }
             }
         }
-        // ✅ يتثبت جنب زرار الأدوات مباشرة حسب اتجاه التولبار
-        addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON)
+        addPanel(container, anchorTo = PanelAnchor.TOOLS_BUTTON)
     }
 
     private fun selectTool(tool: DrawingTool) {
@@ -88,36 +90,35 @@ class PanelManager(
         dismissPanel(toolsPanelView); toolsPanelView = null
     }
 
-    // ─── Line Style Panel ────────────────────────────────────────────────────
+    // ─── Line Style Panel (نفس مقاس popup_unified بدون Pager) ────────────────
 
     fun showLineStylePanel() {
         dismissAll()
+        val container = inflate(R.layout.popup_unified_container_single)
+        lineStylePanelView = container
+        val innerContainer = container.findViewById<LinearLayout>(R.id.unified_single_content)
         val pxD = service.resources.displayMetrics.density
 
-        val container = LinearLayout(service).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundResource(R.drawable.bg_panel)
-            val p = (14 * pxD).toInt()
-            setPadding(p, (8 * pxD).toInt(), p, (8 * pxD).toInt())
-        }
-
-        container.addView(TextView(service).apply {
+        innerContainer.addView(TextView(service).apply {
             text = "Line Style  (Pen)"
             setTextColor(service.getColor(R.color.panel_subtext))
             textSize = 11f
-            setPadding(0, 0, 0, (10 * pxD).toInt())
+            setPadding((14 * pxD).toInt(), (6 * pxD).toInt(), (14 * pxD).toInt(), (10 * pxD).toInt())
         })
 
         val currentStyle = toolStates[DrawingTool.PEN]?.lineStyle ?: LineStyle.SOLID
         for (style in LineStyle.entries) {
             val isActive = currentStyle == style
-            container.addView(TextView(service).apply {
+            innerContainer.addView(TextView(service).apply {
                 text = style.label
                 textSize = 14f
                 gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, (46 * pxD).toInt()
-                ).apply { bottomMargin = (4 * pxD).toInt() }
+                ).apply {
+                    marginStart = (10 * pxD).toInt(); marginEnd = (10 * pxD).toInt()
+                    bottomMargin = (4 * pxD).toInt()
+                }
                 setBackgroundResource(
                     if (isActive) R.drawable.bg_tool_item_selected else R.drawable.bg_tool_item_default
                 )
@@ -128,7 +129,6 @@ class PanelManager(
                 setOnClickListener { selectLineStyle(style) }
             })
         }
-        lineStylePanelView = container
         addPanel(container, anchorTo = PanelAnchor.TOOLS_BUTTON)
     }
 
@@ -140,7 +140,7 @@ class PanelManager(
         dismissPanel(lineStylePanelView); lineStylePanelView = null
     }
 
-    // ─── Color Panel (ViewPager2 — صفحتين: Swatches + HSV) ───────────────────
+    // ─── Color Panel (الحاوية الموحدة popup_unified_container) ───────────────
 
     fun toggleColorPanel() {
         if (colorPanelView != null) {
@@ -150,12 +150,12 @@ class PanelManager(
     }
 
     private fun showColorPanel() {
-        val v = inflate(R.layout.panel_color_pager)
+        val v = inflate(R.layout.popup_unified_container)
         colorPanelView = v
 
-        val pager = v.findViewById<ViewPager2>(R.id.color_pager)
-        val dot0  = v.findViewById<View>(R.id.color_dot_0)
-        val dot1  = v.findViewById<View>(R.id.color_dot_1)
+        val pager = v.findViewById<ViewPager2>(R.id.unified_pager)
+        val dot0  = v.findViewById<View>(R.id.unified_dot_0)
+        val dot1  = v.findViewById<View>(R.id.unified_dot_1)
 
         val adapter = ColorPagerAdapter(
             onPage1Ready = { page -> bindColorPage1(page) },
@@ -164,7 +164,6 @@ class PanelManager(
         pager?.adapter = adapter
         pager?.offscreenPageLimit = 2
 
-        // ✅ الـ Dots بتتزامن مع الـ Swipe في الاتجاهين (يمين أو شمال)
         pager?.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 dot0?.setBackgroundResource(if (position == 0) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
@@ -264,7 +263,7 @@ class PanelManager(
         }
     }
 
-    // ─── Settings Panel ──────────────────────────────────────────────────────
+    // ─── Settings Panel (الحاوية الموحدة popup_unified_container) ────────────
 
     fun toggleSettingsPanel() {
         if (settingsPanelView != null) {
@@ -274,12 +273,12 @@ class PanelManager(
     }
 
     private fun showSettingsPanel() {
-        val v = inflate(R.layout.panel_settings_pager)
+        val v = inflate(R.layout.popup_unified_container)
         settingsPanelView = v
 
-        val pager = v.findViewById<ViewPager2>(R.id.settings_pager)
-        val dot0  = v.findViewById<View>(R.id.dot_0)
-        val dot1  = v.findViewById<View>(R.id.dot_1)
+        val pager = v.findViewById<ViewPager2>(R.id.unified_pager)
+        val dot0  = v.findViewById<View>(R.id.unified_dot_0)
+        val dot1  = v.findViewById<View>(R.id.unified_dot_1)
 
         val adapter = SettingsPagerAdapter(
             onSettingsPageReady = { page -> bindSettingsPage(page) },
@@ -288,7 +287,6 @@ class PanelManager(
         pager?.adapter = adapter
         pager?.offscreenPageLimit = 2
 
-        // ✅ مزامنة ثنائية الاتجاه — Swipe يمين أو شمال بيحدث النقط صح
         pager?.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 dot0?.setBackgroundResource(if (position == 0) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
@@ -379,21 +377,20 @@ class PanelManager(
     private enum class PanelAnchor { TOOLS_BUTTON, COLOR_DOT, SETTINGS_BUTTON }
 
     /**
-     * ✅ تثبيت الـ Panel جنب الزرار المسؤول عنه مباشرة، مش في نص الشاشة
-     * القيم مبنية على ترتيب الأزرار في الـ Toolbar (هورايزونتال أو فيرتيكال)
+     * ✅ تثبيت الـ Popup جنب الزرار المسؤول عنه مباشرة
+     * كل الـ Popups دلوقتي بنفس الحجم بالظبط (240×330dp) فمفيش قفزة في الحجم بينهم
      */
     private fun buildPanelParams(anchorTo: PanelAnchor): WindowManager.LayoutParams {
         val isH = service.appPreferences.toolbarOrientation == ToolbarOrientation.HORIZONTAL
         val pxD = service.resources.displayMetrics.density
         val px  = { dp: Int -> (dp * pxD).toInt() }
 
-        // الموضع الأساسي للتولبار (x=30,y=80 أفقي | x=30,y=80 رأسي زي ما في ToolbarManager)
         val baseX = px(30); val baseY = px(80)
 
         val (offsetX, offsetY) = when (anchorTo) {
-            PanelAnchor.TOOLS_BUTTON -> if (isH) Pair(0, px(56)) else Pair(px(58), px(180))
-            PanelAnchor.COLOR_DOT    -> if (isH) Pair(0, px(56)) else Pair(px(58), px(230))
-            PanelAnchor.SETTINGS_BUTTON -> if (isH) Pair(px(-60), px(56)) else Pair(px(58), px(330))
+            PanelAnchor.TOOLS_BUTTON    -> if (isH) Pair(0, px(56))     else Pair(px(58), px(130))
+            PanelAnchor.COLOR_DOT       -> if (isH) Pair(0, px(56))     else Pair(px(58), px(170))
+            PanelAnchor.SETTINGS_BUTTON -> if (isH) Pair(px(-70), px(56)) else Pair(px(58), px(260))
         }
 
         return WindowManager.LayoutParams(
