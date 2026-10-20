@@ -7,11 +7,20 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 
+/**
+ * Activity شفافة — وظيفتها الوحيدة toggle الـ Service:
+ *   • Service شغالة  → وقّفها
+ *   • Service مش شغالة + إذن موجود  → شغّلها
+ *   • Service مش شغالة + مفيش إذن  → روّح لـ Settings
+ *
+ * بتعمل finish() فوراً في كل الحالات → ما بتظهرش للمستخدم
+ */
 class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // ✅ تفعيل تسجيل الكراش فوراً في أول نقطة ممكنة في التطبيق
         CrashLogger.install(this)
 
         when {
