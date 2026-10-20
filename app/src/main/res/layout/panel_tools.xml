@@ -1,17 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    ✅ عرض مضبوط 130dp بالظبط (مش match_parent ولا wrap على عرض الشاشة)
-    ده المفروض يحل مشكلة الـ Popup اللي بيفرد على عرض الشاشة كله
--->
+<!-- قائمة الأدوات فقط — بدون حجم أو خلفية، بتتحط جوه popup_unified_container_single -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="130dp"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="@drawable/bg_panel"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp"
-    android:elevation="8dp">
+    android:orientation="vertical">
 
     <TextView android:id="@+id/tool_pen" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_pen"/>
     <TextView android:id="@+id/tool_matte_pen" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_matte_pen"/>
