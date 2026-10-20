@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- صفحة 2: تحكم في حجم وشفافية الأداة الحالية — تظهر بالـ Swipe -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:scrollbars="none"
+    android:overScrollMode="never">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/tv_tool_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pen"
+            android:textColor="@color/panel_text"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="18dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/label_width"
+            android:textColor="@color/panel_subtext"
+            android:textSize="11sp"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+            <SeekBar
+                android:id="@+id/seek_tool_width"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="95"
+                android:progress="3"
+                android:progressTint="@color/slider_track_active"
+                android:thumbTint="@color/slider_thumb_color"
+                android:progressBackgroundTint="@color/slider_track_inactive" />
+            <TextView
+                android:id="@+id/label_tool_width_value"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="8px"
+                android:textColor="@color/panel_text"
+                android:textSize="11sp"
+                android:gravity="end"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/label_opacity"
+            android:textColor="@color/panel_subtext"
+            android:textSize="11sp"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+            <SeekBar
+                android:id="@+id/seek_tool_opacity"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="100"
+                android:progressTint="@color/slider_track_active"
+                android:thumbTint="@color/slider_thumb_color"
+                android:progressBackgroundTint="@color/slider_track_inactive" />
+            <TextView
+                android:id="@+id/label_tool_opacity_value"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="100%"
+                android:textColor="@color/panel_text"
+                android:textSize="11sp"
+                android:gravity="end"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
