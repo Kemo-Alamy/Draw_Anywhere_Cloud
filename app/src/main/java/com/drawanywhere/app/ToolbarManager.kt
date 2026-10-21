@@ -6,9 +6,11 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.transition.AutoTransition
+import android.transition.Fade
 import android.transition.TransitionManager
+import android.transition.TransitionSet
 import android.view.*
+import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
 import kotlin.math.abs
 
@@ -64,10 +66,6 @@ class ToolbarManager(
 
     // ─── Public Sync ──────────────────────────────────────────────────────────
 
-    /**
-     * ✅ شكل الدايرة Native — بيتبني بـ GradientDrawable (Oval) وقت التشغيل
-     * ويتحط مباشرة كـ background للـ View نفسها، بدون أي FrameLayout أو clipToOutline
-     */
     fun updateColorDot(color: Int) {
         val dot = toolbarView?.findViewById<View>(R.id.view_color_dot) ?: return
         val shape = GradientDrawable().apply {
@@ -161,7 +159,6 @@ class ToolbarManager(
             service.launchImagePicker()
         }
 
-        // ✅ Click عادي بس — الـ Long-Press اتنقل لصفوف الأدوات نفسها جوه الـ Popup
         view.findViewById<View>(R.id.btn_tools)?.setOnClickListener {
             resetFadeTimer(); panelManager.toggleToolsPanel()
         }
@@ -182,7 +179,7 @@ class ToolbarManager(
         }
     }
 
-    // ─── Toggle Canvas Visibility (Eye) — Collapse / Expand بـ Animation سلس ──
+    // ─── Toggle Canvas Visibility (Eye) — Collapse / Expand سلس أكتر ─────────
 
     private fun toggleCanvasVisibility() {
         canvasVisible = !canvasVisible
@@ -198,14 +195,21 @@ class ToolbarManager(
     }
 
     /**
-     * ✅ Animation سلس (AutoTransition) بدل التغيير الفجائي
-     * WindowManager محتاج updateViewLayout بعد التحريك عشان الـ Window نفسها تتقلص فعلياً
+     * ✅ سلاسة أعلى: مدة أطول (480ms) + Fade صريح + DecelerateInterpolator
+     * بيدي إحساس إن العناصر بتختفي بالتدريج قبل ما يصغر الـ Toolbar بدل القطع المفاجئ
      */
     private fun collapseToolbar(collapse: Boolean) {
         val v = toolbarView as? ViewGroup ?: return
         val params = toolbarParams ?: return
 
-        val transition = AutoTransition().apply { duration = 260L }
+        val transition = TransitionSet().apply {
+            addTransition(Fade(Fade.OUT))
+            addTransition(android.transition.ChangeBounds())
+            addTransition(Fade(Fade.IN))
+            ordering = TransitionSet.ORDERING_TOGETHER
+            duration = 480L
+            interpolator = DecelerateInterpolator(1.4f)
+        }
         TransitionManager.beginDelayedTransition(v, transition)
 
         val vis = if (collapse) View.GONE else View.VISIBLE
@@ -220,7 +224,6 @@ class ToolbarManager(
             if (collapse) R.drawable.bg_toolbar_collapsed else R.drawable.bg_toolbar
         )
 
-        // إعادة قياس الـ Window بعد انتهاء الـ Transition عشان يتقلص فعلياً
         v.post {
             try { windowManager.updateViewLayout(v, params) } catch (_: Exception) { }
         }
