@@ -2,9 +2,12 @@ package com.drawanywhere.app
 
 import android.animation.ObjectAnimator
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.transition.AutoTransition
+import android.transition.TransitionManager
 import android.view.*
 import android.widget.ImageView
 import kotlin.math.abs
@@ -31,10 +34,6 @@ class ToolbarManager(
     private var isDragging     = false
     private val DRAG_THRESHOLD = 10f
 
-    private val longPressHandler   = Handler(Looper.getMainLooper())
-    private var longPressTriggered = false
-    private val LONG_PRESS_MS      = 3000L
-
     private val toolIconMap = mapOf(
         DrawingTool.PEN           to R.drawable.ic_pen,
         DrawingTool.MATTE_PEN     to R.drawable.ic_matte_pen,
@@ -49,13 +48,14 @@ class ToolbarManager(
         DrawingTool.PIXEL_ERASER  to R.drawable.ic_pixel_eraser
     )
 
+    private var hasContent = false
+
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     fun init(orientation: ToolbarOrientation) = inflate(orientation)
 
     fun destroy() {
         fadeHandler.removeCallbacksAndMessages(null)
-        longPressHandler.removeCallbacksAndMessages(null)
         try { toolbarView?.let { windowManager.removeView(it) } } catch (_: Exception) { }
         toolbarView = null; toolbarParams = null
     }
@@ -64,15 +64,20 @@ class ToolbarManager(
 
     // ─── Public Sync ──────────────────────────────────────────────────────────
 
+    /**
+     * ✅ شكل الدايرة Native — بيتبني بـ GradientDrawable (Oval) وقت التشغيل
+     * ويتحط مباشرة كـ background للـ View نفسها، بدون أي FrameLayout أو clipToOutline
+     */
     fun updateColorDot(color: Int) {
-        toolbarView?.findViewById<View>(R.id.view_color_dot)?.setBackgroundColor(color)
+        val dot = toolbarView?.findViewById<View>(R.id.view_color_dot) ?: return
+        val shape = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(color)
+            setStroke(3, 0xFFFFFFFF.toInt())
+        }
+        dot.background = shape
     }
 
-    /**
-     * ✅ تبديل أيقونة اليد بالكامل (مش بس لونها):
-     * drawingEnabled=true  → ic_finger (الرسم شغال)
-     * drawingEnabled=false → ic_touch_passthrough (اللمس بيعدي للشاشة تحت)
-     */
     fun updateFingerIndicator(drawingEnabled: Boolean) {
         val icon = toolbarView?.findViewById<ImageView>(R.id.btn_finger) ?: return
         if (drawingEnabled) {
@@ -99,8 +104,6 @@ class ToolbarManager(
         toolbarView?.findViewById<ImageView>(R.id.btn_tools)?.setImageResource(iconRes)
     }
 
-    private var hasContent = false
-
     // ─── Inflate ──────────────────────────────────────────────────────────────
 
     private fun inflate(orientation: ToolbarOrientation) {
@@ -122,7 +125,6 @@ class ToolbarManager(
         ).apply { gravity = Gravity.TOP or Gravity.START; x = 30; y = 80 }
         toolbarParams = params
 
-        view.findViewById<View>(R.id.view_color_dot)?.setBackgroundColor(drawingCanvas.currentColor)
         view.findViewById<ImageView>(R.id.btn_tools)
             ?.setImageResource(toolIconMap[drawingCanvas.currentTool] ?: R.drawable.ic_pen)
 
@@ -131,6 +133,7 @@ class ToolbarManager(
         scheduleIdleFade()
         windowManager.addView(view, params)
 
+        updateColorDot(drawingCanvas.currentColor)
         updateFingerIndicator(service.appPreferences.fingerDrawing)
         updateContentState(hasContent)
     }
@@ -158,29 +161,9 @@ class ToolbarManager(
             service.launchImagePicker()
         }
 
-        view.findViewById<View>(R.id.btn_tools)?.let { btn ->
-            btn.setOnTouchListener { _, event ->
-                when (event.actionMasked) {
-                    MotionEvent.ACTION_DOWN -> {
-                        longPressTriggered = false
-                        resetFadeTimer()
-                        longPressHandler.postDelayed({
-                            longPressTriggered = true
-                            panelManager.showLineStylePanel()
-                        }, LONG_PRESS_MS)
-                        false
-                    }
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        longPressHandler.removeCallbacksAndMessages(null); false
-                    }
-                    else -> false
-                }
-            }
-            btn.setOnClickListener {
-                resetFadeTimer()
-                if (!longPressTriggered) panelManager.toggleToolsPanel()
-                longPressTriggered = false
-            }
+        // ✅ Click عادي بس — الـ Long-Press اتنقل لصفوف الأدوات نفسها جوه الـ Popup
+        view.findViewById<View>(R.id.btn_tools)?.setOnClickListener {
+            resetFadeTimer(); panelManager.toggleToolsPanel()
         }
 
         view.findViewById<View>(R.id.view_color_dot)?.setOnClickListener {
@@ -199,7 +182,7 @@ class ToolbarManager(
         }
     }
 
-    // ─── Toggle Canvas Visibility (Eye) — Collapse / Expand كامل ─────────────
+    // ─── Toggle Canvas Visibility (Eye) — Collapse / Expand بـ Animation سلس ──
 
     private fun toggleCanvasVisibility() {
         canvasVisible = !canvasVisible
@@ -211,20 +194,24 @@ class ToolbarManager(
         val eyeIcon = toolbarView?.findViewById<ImageView>(R.id.btn_hide)
         eyeIcon?.setImageResource(if (canvasVisible) R.drawable.ic_eye else R.drawable.ic_eye_closed)
 
-        // ✅ هنا السطر اللي كان ناقص — ده اللي بيخلي التولبار فعلياً يتلم لدائرة صغيرة
         collapseToolbar(!canvasVisible)
     }
 
     /**
-     * ✅ يخفي كل الأزرار ماعدا العين، ويبدل خلفية الـ Toolbar لدائرة صغيرة
-     * android:animateLayoutChanges="true" في الـ XML بيعمل الـ Animation تلقائي وسلس
+     * ✅ Animation سلس (AutoTransition) بدل التغيير الفجائي
+     * WindowManager محتاج updateViewLayout بعد التحريك عشان الـ Window نفسها تتقلص فعلياً
      */
     private fun collapseToolbar(collapse: Boolean) {
-        val v = toolbarView ?: return
+        val v = toolbarView as? ViewGroup ?: return
+        val params = toolbarParams ?: return
+
+        val transition = AutoTransition().apply { duration = 260L }
+        TransitionManager.beginDelayedTransition(v, transition)
+
         val vis = if (collapse) View.GONE else View.VISIBLE
         listOf(
             R.id.btn_undo, R.id.btn_clear, R.id.btn_add_image,
-            R.id.btn_tools, R.id.color_dot_container,
+            R.id.btn_tools, R.id.view_color_dot,
             R.id.btn_finger, R.id.btn_settings,
             R.id.toolbar_divider
         ).forEach { id -> v.findViewById<View>(id)?.visibility = vis }
@@ -232,6 +219,11 @@ class ToolbarManager(
         v.setBackgroundResource(
             if (collapse) R.drawable.bg_toolbar_collapsed else R.drawable.bg_toolbar
         )
+
+        // إعادة قياس الـ Window بعد انتهاء الـ Transition عشان يتقلص فعلياً
+        v.post {
+            try { windowManager.updateViewLayout(v, params) } catch (_: Exception) { }
+        }
     }
 
     // ─── Drag ─────────────────────────────────────────────────────────────────
