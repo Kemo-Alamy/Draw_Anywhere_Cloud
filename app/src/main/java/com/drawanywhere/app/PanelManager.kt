@@ -25,9 +25,9 @@ class PanelManager(
 
     private val toolStates = mutableMapOf<DrawingTool, ToolState>()
 
-    // ✅ Handler مخصص للـ Long-Press — منفصل تماماً عن أي Handler تاني
     private val penLongPressHandler = Handler(Looper.getMainLooper())
     private val PEN_LONG_PRESS_MS = 3000L
+    private val touchSlop: Int by lazy { ViewConfiguration.get(service).scaledTouchSlop }
 
     private val penTypeIconMap = mapOf(
         DrawingTool.PEN         to R.id.pen_icon_pen,
@@ -82,7 +82,6 @@ class PanelManager(
             DrawingTool.STROKE_ERASER to R.id.tool_stroke_eraser,
             DrawingTool.PIXEL_ERASER  to R.id.tool_pixel_eraser
         )
-        // الأدوات اللي بتفتح popup الأقلام عند الـ Long-Press
         val penLikeTools = setOf(
             DrawingTool.PEN, DrawingTool.MATTE_PEN, DrawingTool.LASER,
             DrawingTool.BRUSH, DrawingTool.HIGHLIGHTER, DrawingTool.CALLIGRAPHY
@@ -101,52 +100,65 @@ class PanelManager(
             )
 
             if (tool in penLikeTools) {
-                // ✅ الأدوات دي بس بياخدوا OnTouchListener (Long-Press + Click يدوي)
-                var longPressFired = false
-                var downX = 0f
-                var downY = 0f
-
-                btn.setOnTouchListener { v, event ->
-                    when (event.actionMasked) {
-                        MotionEvent.ACTION_DOWN -> {
-                            longPressFired = false
-                            downX = event.x; downY = event.y
-                            penLongPressHandler.removeCallbacksAndMessages(null)
-                            penLongPressHandler.postDelayed({
-                                longPressFired = true
-                                showPenOptionsPopup(tool)
-                            }, PEN_LONG_PRESS_MS)
-                            true
-                        }
-                        MotionEvent.ACTION_MOVE -> {
-                            // لو الإصبع اتحرك أكتر من 15px، نلغي الـ Long-Press (يبقى Scroll مش ضغط)
-                            if (Math.abs(event.x - downX) > 15 || Math.abs(event.y - downY) > 15) {
-                                penLongPressHandler.removeCallbacksAndMessages(null)
-                            }
-                            true
-                        }
-                        MotionEvent.ACTION_UP -> {
-                            penLongPressHandler.removeCallbacksAndMessages(null)
-                            if (!longPressFired) {
-                                v.performClick()
-                                selectTool(tool)
-                            }
-                            true
-                        }
-                        MotionEvent.ACTION_CANCEL -> {
-                            penLongPressHandler.removeCallbacksAndMessages(null)
-                            true
-                        }
-                        else -> false
-                    }
-                }
-                btn.setOnClickListener { /* التحكم بالكامل من OnTouchListener فوق */ }
+                attachPenLongPress(btn, tool)
             } else {
-                // باقي الأدوات (Rectangle, Eraser..) تفضل Click عادي بسيط
                 btn.setOnClickListener { selectTool(tool) }
             }
         }
         addPanel(container, anchorTo = PanelAnchor.TOOLS_BUTTON)
+    }
+
+    /**
+     * ✅ منطق Long-Press موثوق:
+     * - ACTION_DOWN يبدأ عداد 3 ثواني فوراً
+     * - ACTION_MOVE بيلغي العداد فقط لو الحركة فعلياً تعدت touchSlop (يعني تمرير حقيقي مش رعشة إصبع)
+     * - ACTION_UP: لو العداد خلص فعلاً (longPressFired=true) منفتحش Click عادي، غير كده يفتح الأداة
+     */
+    private fun attachPenLongPress(btn: TextView, tool: DrawingTool) {
+        var longPressFired = false
+        var downX = 0f
+        var downY = 0f
+
+        val fireRunnable = Runnable {
+            longPressFired = true
+            btn.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            showPenOptionsPopup(tool)
+        }
+
+        btn.setOnTouchListener { v, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    longPressFired = false
+                    downX = event.rawX
+                    downY = event.rawY
+                    penLongPressHandler.removeCallbacks(fireRunnable)
+                    penLongPressHandler.postDelayed(fireRunnable, PEN_LONG_PRESS_MS)
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = Math.abs(event.rawX - downX)
+                    val dy = Math.abs(event.rawY - downY)
+                    if (dx > touchSlop || dy > touchSlop) {
+                        penLongPressHandler.removeCallbacks(fireRunnable)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    penLongPressHandler.removeCallbacks(fireRunnable)
+                    if (!longPressFired) {
+                        v.performClick()
+                        selectTool(tool)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    penLongPressHandler.removeCallbacks(fireRunnable)
+                    true
+                }
+                else -> false
+            }
+        }
+        btn.setOnClickListener { /* التحكم بالكامل عبر OnTouchListener فوق */ }
     }
 
     private fun selectTool(tool: DrawingTool) {
