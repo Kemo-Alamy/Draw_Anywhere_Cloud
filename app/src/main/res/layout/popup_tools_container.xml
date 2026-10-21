@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ✅ حاوية خاصة بقائمة الأدوات فقط — عرض ضيق 150dp (مش 240dp زي الإعدادات)
+    ScrollView واحدة بس — بدون تداخل Nested عشان الـ Long-Press يشتغل صح
+-->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="@dimen/popup_tools_width"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_popup_unified"
+    android:clipToOutline="true"
+    android:elevation="8dp"
+    android:scrollbars="none"
+    android:overScrollMode="never">
+
+    <LinearLayout
+        android:id="@+id/unified_single_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp" />
+
+</ScrollView>
