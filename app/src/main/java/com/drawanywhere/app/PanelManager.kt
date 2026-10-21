@@ -9,7 +9,6 @@ import android.view.*
 import android.widget.*
 import androidx.viewpager2.widget.ViewPager2
 
-/** خزّان صغير لتتبّع أي قلم بيتعدّل حالياً جوه popup الأقلام */
 private class PenEditingState(var tool: DrawingTool)
 
 class PanelManager(
@@ -25,6 +24,10 @@ class PanelManager(
     private var penOptionsPanelView: View? = null
 
     private val toolStates = mutableMapOf<DrawingTool, ToolState>()
+
+    // ✅ Handler مخصص للـ Long-Press — منفصل تماماً عن أي Handler تاني
+    private val penLongPressHandler = Handler(Looper.getMainLooper())
+    private val PEN_LONG_PRESS_MS = 3000L
 
     private val penTypeIconMap = mapOf(
         DrawingTool.PEN         to R.id.pen_icon_pen,
@@ -44,13 +47,14 @@ class PanelManager(
     // ─── Dismiss ─────────────────────────────────────────────────────────────
 
     fun dismissAll() {
+        penLongPressHandler.removeCallbacksAndMessages(null)
         listOf(colorPanelView, toolsPanelView, settingsPanelView, penOptionsPanelView)
             .forEach { dismissPanel(it) }
         colorPanelView = null; toolsPanelView = null
         settingsPanelView = null; penOptionsPanelView = null
     }
 
-    // ─── Tools Panel (✅ عرض ضيق خاص بيها 150dp، بدون Nested ScrollView) ───────
+    // ─── Tools Panel ─────────────────────────────────────────────────────────
 
     fun toggleToolsPanel() {
         if (toolsPanelView != null) {
@@ -60,7 +64,6 @@ class PanelManager(
     }
 
     private fun showToolsPanel() {
-        // ✅ الحاوية الجديدة الضيقة بدل الحاوية العريضة الموحدة
         val container = inflate(R.layout.popup_tools_container)
         toolsPanelView = container
         val innerContainer = container.findViewById<LinearLayout>(R.id.unified_single_content)
@@ -79,47 +82,68 @@ class PanelManager(
             DrawingTool.STROKE_ERASER to R.id.tool_stroke_eraser,
             DrawingTool.PIXEL_ERASER  to R.id.tool_pixel_eraser
         )
+        // الأدوات اللي بتفتح popup الأقلام عند الـ Long-Press
         val penLikeTools = setOf(
             DrawingTool.PEN, DrawingTool.MATTE_PEN, DrawingTool.LASER,
             DrawingTool.BRUSH, DrawingTool.HIGHLIGHTER, DrawingTool.CALLIGRAPHY
         )
 
-        val longPressHandler = Handler(Looper.getMainLooper())
-        val LONG_PRESS_MS = 3000L
-
         for ((tool, id) in toolButtons) {
-            container.findViewById<TextView>(id)?.let { btn ->
-                val isActive = drawingCanvas.currentTool == tool
-                btn.setBackgroundResource(
-                    if (isActive) R.drawable.bg_tool_item_selected else R.drawable.bg_tool_item_default
-                )
-                btn.setTextColor(
-                    if (isActive) service.getColor(R.color.tool_item_text_selected)
-                    else          service.getColor(R.color.tool_item_text_default)
-                )
-                btn.setOnClickListener { selectTool(tool) }
+            val btn = container.findViewById<TextView>(id) ?: continue
 
-                // ✅ Long-Press 3 ثواني — دلوقتي بدون Nested ScrollView فهيشتغل بشكل موثوق
-                if (tool in penLikeTools) {
-                    var longPressTriggered = false
-                    btn.setOnTouchListener { _, event ->
-                        when (event.actionMasked) {
-                            MotionEvent.ACTION_DOWN -> {
-                                longPressTriggered = false
-                                longPressHandler.postDelayed({
-                                    longPressTriggered = true
-                                    showPenOptionsPopup(tool)
-                                }, LONG_PRESS_MS)
-                                false
-                            }
-                            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                                longPressHandler.removeCallbacksAndMessages(null)
-                                if (longPressTriggered) true else false
-                            }
-                            else -> false
+            val isActive = drawingCanvas.currentTool == tool
+            btn.setBackgroundResource(
+                if (isActive) R.drawable.bg_tool_item_selected else R.drawable.bg_tool_item_default
+            )
+            btn.setTextColor(
+                if (isActive) service.getColor(R.color.tool_item_text_selected)
+                else          service.getColor(R.color.tool_item_text_default)
+            )
+
+            if (tool in penLikeTools) {
+                // ✅ الأدوات دي بس بياخدوا OnTouchListener (Long-Press + Click يدوي)
+                var longPressFired = false
+                var downX = 0f
+                var downY = 0f
+
+                btn.setOnTouchListener { v, event ->
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> {
+                            longPressFired = false
+                            downX = event.x; downY = event.y
+                            penLongPressHandler.removeCallbacksAndMessages(null)
+                            penLongPressHandler.postDelayed({
+                                longPressFired = true
+                                showPenOptionsPopup(tool)
+                            }, PEN_LONG_PRESS_MS)
+                            true
                         }
+                        MotionEvent.ACTION_MOVE -> {
+                            // لو الإصبع اتحرك أكتر من 15px، نلغي الـ Long-Press (يبقى Scroll مش ضغط)
+                            if (Math.abs(event.x - downX) > 15 || Math.abs(event.y - downY) > 15) {
+                                penLongPressHandler.removeCallbacksAndMessages(null)
+                            }
+                            true
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            penLongPressHandler.removeCallbacksAndMessages(null)
+                            if (!longPressFired) {
+                                v.performClick()
+                                selectTool(tool)
+                            }
+                            true
+                        }
+                        MotionEvent.ACTION_CANCEL -> {
+                            penLongPressHandler.removeCallbacksAndMessages(null)
+                            true
+                        }
+                        else -> false
                     }
                 }
+                btn.setOnClickListener { /* التحكم بالكامل من OnTouchListener فوق */ }
+            } else {
+                // باقي الأدوات (Rectangle, Eraser..) تفضل Click عادي بسيط
+                btn.setOnClickListener { selectTool(tool) }
             }
         }
         addPanel(container, anchorTo = PanelAnchor.TOOLS_BUTTON)
@@ -133,10 +157,13 @@ class PanelManager(
         dismissPanel(toolsPanelView); toolsPanelView = null
     }
 
-    // ─── Pen Options Popup (يستخدم الحاوية الموحدة 240dp لأنه فيه Pager + عجلة ألوان) ──
+    // ─── Pen Options Popup ───────────────────────────────────────────────────
 
     private fun showPenOptionsPopup(initialTool: DrawingTool) {
-        dismissAll()
+        dismissPanel(toolsPanelView); toolsPanelView = null
+        dismissPanel(colorPanelView); colorPanelView = null
+        dismissPanel(settingsPanelView); settingsPanelView = null
+
         val v = inflate(R.layout.popup_unified_container)
         penOptionsPanelView = v
 
