@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- صفحة 1 من popup اختيار نوع القلم: شريط أشكال الأقلام + Size Slider + ألوان سريعة -->
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -21,26 +20,35 @@
             android:textColor="@color/panel_text"
             android:textSize="13sp"
             android:textStyle="bold"
-            android:layout_marginBottom="10dp" />
+            android:layout_marginBottom="12dp" />
 
-        <!-- شريط أشكال الأقلام -->
+        <!-- ✅ شريط الأقلام الجرافيكية — أشكال فعلية لأدوات الرسم -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="18dp">
 
-            <ImageView android:id="@+id/pen_icon_pen" android:layout_width="30dp" android:layout_height="30dp" android:padding="5dp" android:src="@drawable/ic_pen" android:tint="@color/panel_text" android:background="@drawable/bg_tool_item_selected" android:scaleType="fitCenter" android:layout_margin="2dp"/>
-            <ImageView android:id="@+id/pen_icon_matte" android:layout_width="30dp" android:layout_height="30dp" android:padding="5dp" android:src="@drawable/ic_matte_pen" android:tint="@color/panel_text" android:background="@drawable/bg_tool_item_default" android:scaleType="fitCenter" android:layout_margin="2dp"/>
-            <ImageView android:id="@+id/pen_icon_laser" android:layout_width="30dp" android:layout_height="30dp" android:padding="5dp" android:src="@drawable/ic_laser" android:tint="@color/panel_text" android:background="@drawable/bg_tool_item_default" android:scaleType="fitCenter" android:layout_margin="2dp"/>
-            <ImageView android:id="@+id/pen_icon_brush" android:layout_width="30dp" android:layout_height="30dp" android:padding="5dp" android:src="@drawable/ic_brush" android:tint="@color/panel_text" android:background="@drawable/bg_tool_item_default" android:scaleType="fitCenter" android:layout_margin="2dp"/>
-            <ImageView android:id="@+id/pen_icon_highlighter" android:layout_width="30dp" android:layout_height="30dp" android:padding="5dp" android:src="@drawable/ic_highlighter" android:tint="@color/panel_text" android:background="@drawable/bg_tool_item_default" android:scaleType="fitCenter" android:layout_margin="2dp"/>
-            <ImageView android:id="@+id/pen_icon_calligraphy" android:layout_width="30dp" android:layout_height="30dp" android:padding="5dp" android:src="@drawable/ic_calligraphy" android:tint="@color/panel_text" android:background="@drawable/bg_tool_item_default" android:scaleType="fitCenter" android:layout_margin="2dp"/>
+            <ImageView android:id="@+id/pen_icon_pen" android:layout_width="34dp" android:layout_height="34dp" android:padding="4dp" android:src="@drawable/ic_nib_pen" android:tint="@color/panel_text" android:background="@drawable/bg_tool_item_selected" android:scaleType="fitCenter" android:layout_margin="2dp"/>
+            <ImageView android:id="@+id/pen_icon_matte" android:layout_width="34dp" android:layout_height="34dp" android:padding="4dp" android:src="@drawable/ic_nib_matte" android:tint="@color/panel_text" android:background="@drawable/bg_tool_item_default" android:scaleType="fitCenter" android:layout_margin="2dp"/>
+            <ImageView android:id="@+id/pen_icon_laser" android:layout_width="34dp" android:layout_height="34dp" android:padding="4dp" android:src="@drawable/ic_nib_laser" android:tint="@color/panel_text" android:background="@drawable/bg_tool_item_default" android:scaleType="fitCenter" android:layout_margin="2dp"/>
+            <ImageView android:id="@+id/pen_icon_brush" android:layout_width="34dp" android:layout_height="34dp" android:padding="4dp" android:src="@drawable/ic_nib_brush" android:tint="@color/panel_text" android:background="@drawable/bg_tool_item_default" android:scaleType="fitCenter" android:layout_margin="2dp"/>
 
         </LinearLayout>
 
-        <!-- Size Slider -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="18dp">
+
+            <ImageView android:id="@+id/pen_icon_highlighter" android:layout_width="34dp" android:layout_height="34dp" android:padding="4dp" android:src="@drawable/ic_nib_highlighter" android:tint="@color/panel_text" android:background="@drawable/bg_tool_item_default" android:scaleType="fitCenter" android:layout_margin="2dp"/>
+            <ImageView android:id="@+id/pen_icon_calligraphy" android:layout_width="34dp" android:layout_height="34dp" android:padding="4dp" android:src="@drawable/ic_nib_calligraphy" android:tint="@color/panel_text" android:background="@drawable/bg_tool_item_default" android:scaleType="fitCenter" android:layout_margin="2dp"/>
+
+        </LinearLayout>
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -76,7 +84,6 @@
                 android:layout_marginStart="6dp" />
         </LinearLayout>
 
-        <!-- ألوان سريعة -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
