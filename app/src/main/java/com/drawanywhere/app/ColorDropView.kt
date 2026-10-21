@@ -8,10 +8,6 @@ import android.graphics.Path
 import android.util.AttributeSet
 import android.view.View
 
-/**
- * ✅ أيقونة لون عصرية على شكل Droplet (نقطة دهان) بدل الدايرة البسيطة
- * بتتلون تلقائياً باللون الحالي المختار + حافة بيضاء رفيعة + ظل خفيف داخلي
- */
 class ColorDropView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -45,7 +41,6 @@ class ColorDropView @JvmOverloads constructor(
         buildDropPath(w.toFloat(), h.toFloat())
     }
 
-    /** يبني شكل نقطة الدهان: رأس مدبب فوق + جسم دائري تحت */
     private fun buildDropPath(w: Float, h: Float) {
         dropPath.reset()
         val cx = w / 2f
@@ -77,7 +72,6 @@ class ColorDropView @JvmOverloads constructor(
         canvas.drawPath(dropPath, fillPaint)
         canvas.drawPath(dropPath, strokePaint)
 
-        // لمعة علوية خفيفة لإحساس ثلاثي الأبعاد
         canvas.save()
         canvas.clipPath(dropPath)
         canvas.drawCircle(width * 0.36f, height * 0.4f, width * 0.18f, highlightPaint)
