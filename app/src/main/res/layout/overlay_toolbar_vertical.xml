@@ -10,10 +10,8 @@
     android:paddingEnd="4dp"
     android:paddingTop="8dp"
     android:paddingBottom="8dp"
-    android:elevation="8dp"
-    android:animateLayoutChanges="true">
+    android:elevation="8dp">
 
-    <!-- ① Eye -->
     <ImageView
         android:id="@+id/btn_hide"
         android:layout_width="50dp"
@@ -27,7 +25,6 @@
         android:focusable="true"
         android:contentDescription="@string/cd_btn_hide" />
 
-    <!-- ② Undo (باهت افتراضياً) -->
     <ImageView
         android:id="@+id/btn_undo"
         android:layout_width="50dp"
@@ -43,7 +40,6 @@
         android:enabled="false"
         android:contentDescription="@string/cd_btn_undo" />
 
-    <!-- ③ Clear/Trash (باهت افتراضياً) -->
     <ImageView
         android:id="@+id/btn_clear"
         android:layout_width="50dp"
@@ -59,7 +55,6 @@
         android:enabled="false"
         android:contentDescription="@string/cd_btn_clear" />
 
-    <!-- ④ Add Image -->
     <ImageView
         android:id="@+id/btn_add_image"
         android:layout_width="50dp"
@@ -73,7 +68,6 @@
         android:focusable="true"
         android:contentDescription="@string/cd_btn_image" />
 
-    <!-- ⑤ Tools -->
     <ImageView
         android:id="@+id/btn_tools"
         android:layout_width="50dp"
@@ -95,24 +89,17 @@
         android:layout_marginTop="3dp"
         android:layout_marginBottom="3dp" />
 
-    <!-- ⑥ Color Dot — ✅ أضفنا id للـ FrameLayout نفسه -->
-    <FrameLayout
-        android:id="@+id/color_dot_container"
+    <!-- ✅ نفس التعديل — View واحدة فقط -->
+    <View
+        android:id="@+id/view_color_dot"
         android:layout_width="32dp"
         android:layout_height="32dp"
         android:layout_marginTop="4dp"
         android:layout_marginBottom="4dp"
-        android:background="@drawable/bg_color_dot_ring"
-        android:clipToOutline="true"
-        android:contentDescription="@string/cd_color_dot">
-        <View
-            android:id="@+id/view_color_dot"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/toolbar_dot_red" />
-    </FrameLayout>
+        android:clickable="true"
+        android:focusable="true"
+        android:contentDescription="@string/cd_color_dot" />
 
-    <!-- ⑦ Finger — زرار حقيقي -->
     <ImageView
         android:id="@+id/btn_finger"
         android:layout_width="50dp"
@@ -126,7 +113,6 @@
         android:focusable="true"
         android:contentDescription="@string/cd_btn_finger" />
 
-    <!-- ⑧ Settings -->
     <ImageView
         android:id="@+id/btn_settings"
         android:layout_width="50dp"
