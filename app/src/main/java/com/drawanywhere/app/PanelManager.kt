@@ -2,7 +2,6 @@ package com.drawanywhere.app
 
 import android.graphics.Color
 import android.graphics.PixelFormat
-import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -35,14 +34,6 @@ class PanelManager(
         DrawingTool.HIGHLIGHTER to R.id.pen_icon_highlighter,
         DrawingTool.CALLIGRAPHY to R.id.pen_icon_calligraphy
     )
-    private val penTypeDrawableMap = mapOf(
-        DrawingTool.PEN         to R.drawable.ic_pen,
-        DrawingTool.MATTE_PEN   to R.drawable.ic_matte_pen,
-        DrawingTool.LASER       to R.drawable.ic_laser,
-        DrawingTool.BRUSH       to R.drawable.ic_brush,
-        DrawingTool.HIGHLIGHTER to R.drawable.ic_highlighter,
-        DrawingTool.CALLIGRAPHY to R.drawable.ic_calligraphy
-    )
 
     init {
         DrawingTool.entries.forEach { tool ->
@@ -59,7 +50,7 @@ class PanelManager(
         settingsPanelView = null; penOptionsPanelView = null
     }
 
-    // ─── Tools Panel ─────────────────────────────────────────────────────────
+    // ─── Tools Panel (✅ عرض ضيق خاص بيها 150dp، بدون Nested ScrollView) ───────
 
     fun toggleToolsPanel() {
         if (toolsPanelView != null) {
@@ -69,7 +60,8 @@ class PanelManager(
     }
 
     private fun showToolsPanel() {
-        val container = inflate(R.layout.popup_unified_container_single)
+        // ✅ الحاوية الجديدة الضيقة بدل الحاوية العريضة الموحدة
+        val container = inflate(R.layout.popup_tools_container)
         toolsPanelView = container
         val innerContainer = container.findViewById<LinearLayout>(R.id.unified_single_content)
         LayoutInflater.from(service).inflate(R.layout.panel_tools_page1, innerContainer, true)
@@ -87,7 +79,6 @@ class PanelManager(
             DrawingTool.STROKE_ERASER to R.id.tool_stroke_eraser,
             DrawingTool.PIXEL_ERASER  to R.id.tool_pixel_eraser
         )
-        // الأدوات اللي بتفتح popup الأقلام عند الضغط 3 ثواني
         val penLikeTools = setOf(
             DrawingTool.PEN, DrawingTool.MATTE_PEN, DrawingTool.LASER,
             DrawingTool.BRUSH, DrawingTool.HIGHLIGHTER, DrawingTool.CALLIGRAPHY
@@ -108,7 +99,7 @@ class PanelManager(
                 )
                 btn.setOnClickListener { selectTool(tool) }
 
-                // ✅ Long-Press 3 ثواني — فقط على الأقلام
+                // ✅ Long-Press 3 ثواني — دلوقتي بدون Nested ScrollView فهيشتغل بشكل موثوق
                 if (tool in penLikeTools) {
                     var longPressTriggered = false
                     btn.setOnTouchListener { _, event ->
@@ -142,7 +133,7 @@ class PanelManager(
         dismissPanel(toolsPanelView); toolsPanelView = null
     }
 
-    // ─── Pen Options Popup (شريط الأقلام + Size + ألوان ← عجلة الألوان بالسحب) ──
+    // ─── Pen Options Popup (يستخدم الحاوية الموحدة 240dp لأنه فيه Pager + عجلة ألوان) ──
 
     private fun showPenOptionsPopup(initialTool: DrawingTool) {
         dismissAll()
@@ -154,11 +145,10 @@ class PanelManager(
         val dot1  = v.findViewById<View>(R.id.unified_dot_1)
 
         val editing = PenEditingState(initialTool)
-        var page1Ref: View? = null
         var page2Ref: View? = null
 
         val adapter = PenOptionsPagerAdapter(
-            onPage1Ready = { page -> page1Ref = page; bindPenOptionsPage1(page, editing) { page2Ref } },
+            onPage1Ready = { page -> bindPenOptionsPage1(page, editing) { page2Ref } },
             onPage2Ready = { page -> page2Ref = page; bindPenOptionsPage2(page, editing) }
         )
         pager?.adapter = adapter
@@ -179,7 +169,6 @@ class PanelManager(
 
         page.findViewById<TextView>(R.id.tv_pen_options_title)?.text = editing.tool.displayName
 
-        // تظليل أيقونة القلم المختار دلوقتي
         for ((t, id) in penTypeIconMap) {
             page.findViewById<ImageView>(id)?.apply {
                 setBackgroundResource(if (t == editing.tool) R.drawable.bg_tool_item_selected else R.drawable.bg_tool_item_default)
@@ -255,7 +244,6 @@ class PanelManager(
         }
     }
 
-    /** يطبّق اللون على أداة معينة فقط — كل قلم بيحتفظ بلونه الخاص بشكل مستقل */
     private fun applyColorToTool(tool: DrawingTool, color: Int) {
         val state = toolStates.getOrPut(tool) { service.appPreferences.getToolState(tool) }
         state.color = color
@@ -266,7 +254,7 @@ class PanelManager(
         }
     }
 
-    // ─── Color Panel (الحاوية الموحدة popup_unified_container) ───────────────
+    // ─── Color Panel ────────────────────────────────────────────────────────
 
     fun toggleColorPanel() {
         if (colorPanelView != null) {
@@ -389,7 +377,7 @@ class PanelManager(
         }
     }
 
-    // ─── Settings Panel ────────────────────────────────────────────────────────
+    // ─── Settings Panel ──────────────────────────────────────────────────────
 
     fun toggleSettingsPanel() {
         if (settingsPanelView != null) {
