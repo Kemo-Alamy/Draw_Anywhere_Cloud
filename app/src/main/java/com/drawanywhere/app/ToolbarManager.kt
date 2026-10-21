@@ -2,7 +2,6 @@ package com.drawanywhere.app
 
 import android.animation.ObjectAnimator
 import android.graphics.PixelFormat
-import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -66,14 +65,9 @@ class ToolbarManager(
 
     // ─── Public Sync ──────────────────────────────────────────────────────────
 
+    /** ✅ بيلوّن أيقونة الـ Droplet مباشرة باللون الحالي المختار */
     fun updateColorDot(color: Int) {
-        val dot = toolbarView?.findViewById<View>(R.id.view_color_dot) ?: return
-        val shape = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(color)
-            setStroke(3, 0xFFFFFFFF.toInt())
-        }
-        dot.background = shape
+        toolbarView?.findViewById<ColorDropView>(R.id.view_color_dot)?.setColor(color)
     }
 
     fun updateFingerIndicator(drawingEnabled: Boolean) {
@@ -179,7 +173,7 @@ class ToolbarManager(
         }
     }
 
-    // ─── Toggle Canvas Visibility (Eye) — Collapse / Expand سلس أكتر ─────────
+    // ─── Toggle Canvas Visibility (Eye) ───────────────────────────────────────
 
     private fun toggleCanvasVisibility() {
         canvasVisible = !canvasVisible
@@ -194,10 +188,6 @@ class ToolbarManager(
         collapseToolbar(!canvasVisible)
     }
 
-    /**
-     * ✅ سلاسة أعلى: مدة أطول (480ms) + Fade صريح + DecelerateInterpolator
-     * بيدي إحساس إن العناصر بتختفي بالتدريج قبل ما يصغر الـ Toolbar بدل القطع المفاجئ
-     */
     private fun collapseToolbar(collapse: Boolean) {
         val v = toolbarView as? ViewGroup ?: return
         val params = toolbarParams ?: return
