@@ -89,11 +89,11 @@
         android:layout_marginTop="3dp"
         android:layout_marginBottom="3dp" />
 
-    <!-- ✅ نفس التعديل — View واحدة فقط -->
-    <View
+    <!-- ✅ أيقونة اللون الجديدة — Droplet عصري -->
+    <com.drawanywhere.app.ColorDropView
         android:id="@+id/view_color_dot"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
+        android:layout_width="30dp"
+        android:layout_height="34dp"
         android:layout_marginTop="4dp"
         android:layout_marginBottom="4dp"
         android:clickable="true"
