@@ -40,13 +40,13 @@
         android:enabled="false"
         android:contentDescription="@string/cd_btn_undo" />
 
-    <!-- ✅ دايرة اللون — View واحدة بس، شكلها Oval أصلي مُحدد وقت التشغيل، بدون FrameLayout أو clipToOutline -->
-    <View
+    <!-- ✅ أيقونة اللون الجديدة — Droplet عصري بيتلون ديناميكياً -->
+    <com.drawanywhere.app.ColorDropView
         android:id="@+id/view_color_dot"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:layout_marginStart="4dp"
-        android:layout_marginEnd="4dp"
+        android:layout_width="28dp"
+        android:layout_height="32dp"
+        android:layout_marginStart="5dp"
+        android:layout_marginEnd="5dp"
         android:clickable="true"
         android:focusable="true"
         android:contentDescription="@string/cd_color_dot" />
