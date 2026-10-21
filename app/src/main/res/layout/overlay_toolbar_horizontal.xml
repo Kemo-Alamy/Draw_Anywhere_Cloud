@@ -10,10 +10,8 @@
     android:paddingEnd="6dp"
     android:paddingTop="4dp"
     android:paddingBottom="4dp"
-    android:elevation="8dp"
-    android:animateLayoutChanges="true">
+    android:elevation="8dp">
 
-    <!-- ① Eye -->
     <ImageView
         android:id="@+id/btn_hide"
         android:layout_width="46dp"
@@ -27,7 +25,6 @@
         android:focusable="true"
         android:contentDescription="@string/cd_btn_hide" />
 
-    <!-- ② Undo (يبدأ باهت لحد ما فيه رسم) -->
     <ImageView
         android:id="@+id/btn_undo"
         android:layout_width="46dp"
@@ -43,24 +40,17 @@
         android:enabled="false"
         android:contentDescription="@string/cd_btn_undo" />
 
-    <!-- ③ Color Dot — ✅ أضفنا id للـ FrameLayout نفسه عشان نقدر نخفيه كامل وقت الـ Collapse -->
-    <FrameLayout
-        android:id="@+id/color_dot_container"
+    <!-- ✅ دايرة اللون — View واحدة بس، شكلها Oval أصلي مُحدد وقت التشغيل، بدون FrameLayout أو clipToOutline -->
+    <View
+        android:id="@+id/view_color_dot"
         android:layout_width="30dp"
         android:layout_height="30dp"
         android:layout_marginStart="4dp"
         android:layout_marginEnd="4dp"
-        android:background="@drawable/bg_color_dot_ring"
-        android:clipToOutline="true"
-        android:contentDescription="@string/cd_color_dot">
-        <View
-            android:id="@+id/view_color_dot"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@color/toolbar_dot_red" />
-    </FrameLayout>
+        android:clickable="true"
+        android:focusable="true"
+        android:contentDescription="@string/cd_color_dot" />
 
-    <!-- ④ Finger — زرار حقيقي يبدل Touch Pass-Through -->
     <ImageView
         android:id="@+id/btn_finger"
         android:layout_width="46dp"
@@ -74,7 +64,6 @@
         android:focusable="true"
         android:contentDescription="@string/cd_btn_finger" />
 
-    <!-- ⑤ Settings -->
     <ImageView
         android:id="@+id/btn_settings"
         android:layout_width="46dp"
