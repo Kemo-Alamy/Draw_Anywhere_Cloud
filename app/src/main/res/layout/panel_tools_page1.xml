@@ -1,8 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    ✅ بدون ScrollView هنا — الحاوية الخارجية popup_tools_container هي اللي بتعمل Scroll
-    صف واحد كامل العرض لكل أداة، الارتفاع بس بيساوي حجم أيقونة الإعدادات (46dp)
--->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -21,8 +17,8 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="@color/panel_section_divider"
-        android:layout_marginStart="6dp"
-        android:layout_marginEnd="6dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp"
         android:layout_marginBottom="2dp" />
 
     <TextView android:id="@+id/tool_rectangle" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_rectangle"/>
