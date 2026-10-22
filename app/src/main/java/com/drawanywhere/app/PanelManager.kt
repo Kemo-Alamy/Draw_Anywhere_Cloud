@@ -29,6 +29,9 @@ class PanelManager(
     private val PEN_LONG_PRESS_MS = 3000L
     private val touchSlop: Int by lazy { ViewConfiguration.get(service).scaledTouchSlop }
 
+    // ✅ مرجع مباشر للـ ViewPager2 بتاع قائمة الأدوات عشان نقدر نعطّله/نفعّله وقت الـ Long-Press
+    private var toolsPagerRef: ViewPager2? = null
+
     private val penTypeIconMap = mapOf(
         DrawingTool.PEN         to R.id.pen_icon_pen,
         DrawingTool.MATTE_PEN   to R.id.pen_icon_matte,
@@ -53,17 +56,18 @@ class PanelManager(
 
     fun dismissAll() {
         penLongPressHandler.removeCallbacksAndMessages(null)
+        toolsPagerRef = null
         listOf(colorPanelView, toolsPanelView, settingsPanelView, penOptionsPanelView)
             .forEach { dismissPanel(it) }
         colorPanelView = null; toolsPanelView = null
         settingsPanelView = null; penOptionsPanelView = null
     }
 
-    // ─── Tools Panel (✅ ViewPager2 بصفحتين، مربعات كبيرة زي الصورة) ──────────
+    // ─── Tools Panel ─────────────────────────────────────────────────────────
 
     fun toggleToolsPanel() {
         if (toolsPanelView != null) {
-            dismissPanel(toolsPanelView); toolsPanelView = null; return
+            dismissPanel(toolsPanelView); toolsPanelView = null; toolsPagerRef = null; return
         }
         dismissAll(); showToolsPanel()
     }
@@ -73,6 +77,7 @@ class PanelManager(
         toolsPanelView = v
 
         val pager = v.findViewById<ViewPager2>(R.id.tools_pager)
+        toolsPagerRef = pager
         val dot0  = v.findViewById<View>(R.id.tools_dot_0)
         val dot1  = v.findViewById<View>(R.id.tools_dot_1)
 
@@ -93,7 +98,6 @@ class PanelManager(
         addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON)
     }
 
-    /** يربط أي صفحة من صفحتي قائمة الأدوات بغض النظر عن محتواها (كل الـ IDs اللي بيدور عليها غير موجودة بتتجاهل تلقائياً) */
     private fun bindToolsListPage(page: View) {
         val toolButtons = listOf(
             DrawingTool.PEN           to R.id.tool_pen,
@@ -131,9 +135,10 @@ class PanelManager(
     }
 
     /**
-     * ✅ الإصلاح الحقيقي للـ Long-Press:
-     * requestDisallowInterceptTouchEvent(true) بيمنع أي حاوية حوالين الزرار (ViewPager2 أو غيره)
-     * من مقاطعة سلسلة اللمسة لحد ما نرفع إصبعنا — وده السبب الحقيقي اللي كان بيلغي العداد قبل ما يكمل 3 ثواني
+     * ✅ الحل الجذري النهائي:
+     * بمجرد ما الإصبع ينزل على أي زرار قلم، بنعطّل ViewPager2 بالكامل فوراً
+     * (isUserInputEnabled = false) فما بيقدرش ياخد اللمسة أو يقاطعها خالص
+     * وبنرجعه يشتغل تاني أول ما الإصبع يترفع (سواء فتح Popup أو عادي)
      */
     private fun attachPenLongPress(btn: TextView, tool: DrawingTool) {
         var longPressFired = false
@@ -152,7 +157,11 @@ class PanelManager(
                     longPressFired = false
                     downX = event.rawX
                     downY = event.rawY
+
+                    // ✅ تعطيل الـ Pager بالكامل فور لمس الزرار
+                    toolsPagerRef?.isUserInputEnabled = false
                     v.parent?.requestDisallowInterceptTouchEvent(true)
+
                     penLongPressHandler.removeCallbacks(fireRunnable)
                     penLongPressHandler.postDelayed(fireRunnable, PEN_LONG_PRESS_MS)
                     true
@@ -160,15 +169,17 @@ class PanelManager(
                 MotionEvent.ACTION_MOVE -> {
                     val dx = Math.abs(event.rawX - downX)
                     val dy = Math.abs(event.rawY - downY)
-                    if (dx > touchSlop * 3 || dy > touchSlop * 3) {
-                        // حركة كبيرة فعلاً (مش رعشة يد) → نعتبرها تمرير ونلغي الـ Long-Press
+                    if (dx > touchSlop * 4 || dy > touchSlop * 4) {
+                        // حركة كبيرة فعلاً → إلغاء الـ Long-Press ورجوع الـ Pager يشتغل
                         penLongPressHandler.removeCallbacks(fireRunnable)
+                        toolsPagerRef?.isUserInputEnabled = true
                         v.parent?.requestDisallowInterceptTouchEvent(false)
                     }
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     penLongPressHandler.removeCallbacks(fireRunnable)
+                    toolsPagerRef?.isUserInputEnabled = true
                     v.parent?.requestDisallowInterceptTouchEvent(false)
                     if (!longPressFired) {
                         v.performClick()
@@ -178,6 +189,7 @@ class PanelManager(
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     penLongPressHandler.removeCallbacks(fireRunnable)
+                    toolsPagerRef?.isUserInputEnabled = true
                     v.parent?.requestDisallowInterceptTouchEvent(false)
                     true
                 }
@@ -192,13 +204,13 @@ class PanelManager(
         drawingCanvas.switchTool(tool, state)
         toolbarManager.updateColorDot(state.color)
         toolbarManager.updateToolIcon(tool)
-        dismissPanel(toolsPanelView); toolsPanelView = null
+        dismissPanel(toolsPanelView); toolsPanelView = null; toolsPagerRef = null
     }
 
     // ─── Pen Options Popup ───────────────────────────────────────────────────
 
     private fun showPenOptionsPopup(initialTool: DrawingTool) {
-        dismissPanel(toolsPanelView); toolsPanelView = null
+        dismissPanel(toolsPanelView); toolsPanelView = null; toolsPagerRef = null
         dismissPanel(colorPanelView); colorPanelView = null
         dismissPanel(settingsPanelView); settingsPanelView = null
 
@@ -562,8 +574,6 @@ class PanelManager(
 
         val baseX = px(30); val baseY = px(80)
 
-        // ✅ زودنا offsetX بتاع TOOLS_BUTTON (الوضع الرأسي) عشان الـ popup يبعد كفاية
-        // عن التولبار الرأسي ومايغطيش باقي الأزرار (العين/Undo/اللون/الإصبع/الإعدادات)
         val (offsetX, offsetY) = when (anchorTo) {
             PanelAnchor.TOOLS_BUTTON    -> if (isH) Pair(0, px(56))     else Pair(px(64), px(70))
             PanelAnchor.COLOR_DOT       -> if (isH) Pair(0, px(56))     else Pair(px(58), px(170))
