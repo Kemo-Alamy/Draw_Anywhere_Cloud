@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingTop="8dp">
+
+    <TextView android:id="@+id/tool_matte_pen" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_matte_pen"/>
+    <TextView android:id="@+id/tool_brush" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_brush"/>
+    <TextView android:id="@+id/tool_highlighter" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_highlighter"/>
+    <TextView android:id="@+id/tool_calligraphy" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_calligraphy"/>
+    <TextView android:id="@+id/tool_lasso" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_lasso"/>
+
+</LinearLayout>
