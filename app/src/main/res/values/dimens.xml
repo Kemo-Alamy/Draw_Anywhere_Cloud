@@ -5,6 +5,6 @@
     <dimen name="popup_unified_radius">18dp</dimen>
     <dimen name="popup_dots_row_height">24dp</dimen>
 
-    <!-- ✅ معدّل — عرض ضيق جداً يطابق مقياس أيقونة Settings -->
-    <dimen name="popup_tools_width">96dp</dimen>
+    <!-- ✅ جديد — عرض مخصص لقائمة الأدوات يطابق الصورة المرجعية بالظبط -->
+    <dimen name="popup_tools_list_width">190dp</dimen>
 </resources>
