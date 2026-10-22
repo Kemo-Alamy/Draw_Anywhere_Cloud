@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView android:id="@+id/tool_pen" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_pen"/>
+    <TextView android:id="@+id/tool_matte_pen" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_matte_pen"/>
+    <TextView android:id="@+id/tool_laser" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_laser"/>
+    <TextView android:id="@+id/tool_brush" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_brush"/>
+    <TextView android:id="@+id/tool_highlighter" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_highlighter"/>
+    <TextView android:id="@+id/tool_calligraphy" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_calligraphy"/>
+    <TextView android:id="@+id/tool_lasso" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_lasso"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/panel_section_divider"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp"
+        android:layout_marginBottom="2dp" />
+
+    <TextView android:id="@+id/tool_rectangle" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_rectangle"/>
+    <TextView android:id="@+id/tool_ellipse" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_ellipse"/>
+    <TextView android:id="@+id/tool_stroke_eraser" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_stroke_eraser"/>
+    <TextView android:id="@+id/tool_pixel_eraser" style="@style/Widget.DrawAnywhere.ToolRow" android:text="@string/tool_pixel_eraser"/>
+
+</LinearLayout>
