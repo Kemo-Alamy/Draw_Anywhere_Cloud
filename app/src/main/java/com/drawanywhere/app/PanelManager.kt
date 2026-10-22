@@ -38,6 +38,11 @@ class PanelManager(
         DrawingTool.CALLIGRAPHY to R.id.pen_icon_calligraphy
     )
 
+    private val penLikeTools = setOf(
+        DrawingTool.PEN, DrawingTool.MATTE_PEN, DrawingTool.LASER,
+        DrawingTool.BRUSH, DrawingTool.HIGHLIGHTER, DrawingTool.CALLIGRAPHY
+    )
+
     init {
         DrawingTool.entries.forEach { tool ->
             toolStates[tool] = service.appPreferences.getToolState(tool)
@@ -54,7 +59,7 @@ class PanelManager(
         settingsPanelView = null; penOptionsPanelView = null
     }
 
-    // ─── Tools Panel ─────────────────────────────────────────────────────────
+    // ─── Tools Panel (✅ ViewPager2 بصفحتين، مربعات كبيرة زي الصورة) ──────────
 
     fun toggleToolsPanel() {
         if (toolsPanelView != null) {
@@ -64,11 +69,32 @@ class PanelManager(
     }
 
     private fun showToolsPanel() {
-        val container = inflate(R.layout.popup_tools_container)
-        toolsPanelView = container
-        val innerContainer = container.findViewById<LinearLayout>(R.id.unified_single_content)
-        LayoutInflater.from(service).inflate(R.layout.panel_tools_page1, innerContainer, true)
+        val v = inflate(R.layout.popup_tools_list_container)
+        toolsPanelView = v
 
+        val pager = v.findViewById<ViewPager2>(R.id.tools_pager)
+        val dot0  = v.findViewById<View>(R.id.tools_dot_0)
+        val dot1  = v.findViewById<View>(R.id.tools_dot_1)
+
+        val adapter = ToolsListPagerAdapter(
+            onPage1Ready = { page -> bindToolsListPage(page) },
+            onPage2Ready = { page -> bindToolsListPage(page) }
+        )
+        pager?.adapter = adapter
+        pager?.offscreenPageLimit = 2
+
+        pager?.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                dot0?.setBackgroundResource(if (position == 0) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
+                dot1?.setBackgroundResource(if (position == 1) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
+            }
+        })
+
+        addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON)
+    }
+
+    /** يربط أي صفحة من صفحتي قائمة الأدوات بغض النظر عن محتواها (كل الـ IDs اللي بيدور عليها غير موجودة بتتجاهل تلقائياً) */
+    private fun bindToolsListPage(page: View) {
         val toolButtons = listOf(
             DrawingTool.PEN           to R.id.tool_pen,
             DrawingTool.MATTE_PEN     to R.id.tool_matte_pen,
@@ -82,13 +108,9 @@ class PanelManager(
             DrawingTool.STROKE_ERASER to R.id.tool_stroke_eraser,
             DrawingTool.PIXEL_ERASER  to R.id.tool_pixel_eraser
         )
-        val penLikeTools = setOf(
-            DrawingTool.PEN, DrawingTool.MATTE_PEN, DrawingTool.LASER,
-            DrawingTool.BRUSH, DrawingTool.HIGHLIGHTER, DrawingTool.CALLIGRAPHY
-        )
 
         for ((tool, id) in toolButtons) {
-            val btn = container.findViewById<TextView>(id) ?: continue
+            val btn = page.findViewById<TextView>(id) ?: continue
 
             val isActive = drawingCanvas.currentTool == tool
             btn.setBackgroundResource(
@@ -102,17 +124,16 @@ class PanelManager(
             if (tool in penLikeTools) {
                 attachPenLongPress(btn, tool)
             } else {
+                btn.setOnTouchListener(null)
                 btn.setOnClickListener { selectTool(tool) }
             }
         }
-        addPanel(container, anchorTo = PanelAnchor.TOOLS_BUTTON)
     }
 
     /**
-     * ✅ منطق Long-Press موثوق:
-     * - ACTION_DOWN يبدأ عداد 3 ثواني فوراً
-     * - ACTION_MOVE بيلغي العداد فقط لو الحركة فعلياً تعدت touchSlop (يعني تمرير حقيقي مش رعشة إصبع)
-     * - ACTION_UP: لو العداد خلص فعلاً (longPressFired=true) منفتحش Click عادي، غير كده يفتح الأداة
+     * ✅ الإصلاح الحقيقي للـ Long-Press:
+     * requestDisallowInterceptTouchEvent(true) بيمنع أي حاوية حوالين الزرار (ViewPager2 أو غيره)
+     * من مقاطعة سلسلة اللمسة لحد ما نرفع إصبعنا — وده السبب الحقيقي اللي كان بيلغي العداد قبل ما يكمل 3 ثواني
      */
     private fun attachPenLongPress(btn: TextView, tool: DrawingTool) {
         var longPressFired = false
@@ -131,6 +152,7 @@ class PanelManager(
                     longPressFired = false
                     downX = event.rawX
                     downY = event.rawY
+                    v.parent?.requestDisallowInterceptTouchEvent(true)
                     penLongPressHandler.removeCallbacks(fireRunnable)
                     penLongPressHandler.postDelayed(fireRunnable, PEN_LONG_PRESS_MS)
                     true
@@ -138,13 +160,16 @@ class PanelManager(
                 MotionEvent.ACTION_MOVE -> {
                     val dx = Math.abs(event.rawX - downX)
                     val dy = Math.abs(event.rawY - downY)
-                    if (dx > touchSlop || dy > touchSlop) {
+                    if (dx > touchSlop * 3 || dy > touchSlop * 3) {
+                        // حركة كبيرة فعلاً (مش رعشة يد) → نعتبرها تمرير ونلغي الـ Long-Press
                         penLongPressHandler.removeCallbacks(fireRunnable)
+                        v.parent?.requestDisallowInterceptTouchEvent(false)
                     }
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     penLongPressHandler.removeCallbacks(fireRunnable)
+                    v.parent?.requestDisallowInterceptTouchEvent(false)
                     if (!longPressFired) {
                         v.performClick()
                         selectTool(tool)
@@ -153,12 +178,13 @@ class PanelManager(
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     penLongPressHandler.removeCallbacks(fireRunnable)
+                    v.parent?.requestDisallowInterceptTouchEvent(false)
                     true
                 }
                 else -> false
             }
         }
-        btn.setOnClickListener { /* التحكم بالكامل عبر OnTouchListener فوق */ }
+        btn.setOnClickListener { /* كل التحكم من OnTouchListener فوق */ }
     }
 
     private fun selectTool(tool: DrawingTool) {
@@ -536,8 +562,10 @@ class PanelManager(
 
         val baseX = px(30); val baseY = px(80)
 
+        // ✅ زودنا offsetX بتاع TOOLS_BUTTON (الوضع الرأسي) عشان الـ popup يبعد كفاية
+        // عن التولبار الرأسي ومايغطيش باقي الأزرار (العين/Undo/اللون/الإصبع/الإعدادات)
         val (offsetX, offsetY) = when (anchorTo) {
-            PanelAnchor.TOOLS_BUTTON    -> if (isH) Pair(0, px(56))     else Pair(px(58), px(130))
+            PanelAnchor.TOOLS_BUTTON    -> if (isH) Pair(0, px(56))     else Pair(px(64), px(70))
             PanelAnchor.COLOR_DOT       -> if (isH) Pair(0, px(56))     else Pair(px(58), px(170))
             PanelAnchor.SETTINGS_BUTTON -> if (isH) Pair(px(-70), px(56)) else Pair(px(58), px(260))
         }
