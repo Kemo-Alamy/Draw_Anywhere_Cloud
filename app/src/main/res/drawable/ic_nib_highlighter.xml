@@ -3,15 +3,15 @@
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
     <path
-        android:pathData="M7,2H17V9L15,15H9L7,9V2Z"
+        android:pathData="M6,2H18V10L15,15H9L6,10V2Z"
         android:fillColor="#00000000"
         android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.5"
+        android:strokeWidth="1.6"
         android:strokeLineJoin="round" />
     <path
         android:pathData="M9,15H15L14,22H10L9,15Z"
-        android:fillColor="#4DFFEE58"
+        android:fillColor="#66FFEE58"
         android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.5"
+        android:strokeWidth="1.4"
         android:strokeLineJoin="round" />
 </vector>
