@@ -137,10 +137,8 @@ class ToolbarManager(
             service.launchImagePicker()
         }
 
-        // ✅ أيقونة القلم في الشريط — بتفتح بوب أب الريش الجرافيكية مباشرة (مش قائمة Pen النصية)
-        view.findViewById<View>(R.id.btn_tools)?.setOnClickListener {
-            resetFadeTimer(); panelManager.togglePenNibsPopup()
-        }
+        // ✅ أيقونة القلم: Click عادي = القائمة الأساسية | Long-Press 3 ثواني = Popup الريش المتقدم
+        attachToolsButtonGestures(view)
 
         view.findViewById<View>(R.id.view_color_dot)?.setOnClickListener {
             resetFadeTimer(); panelManager.toggleColorPanel()
@@ -156,6 +154,72 @@ class ToolbarManager(
         view.findViewById<View>(R.id.btn_settings)?.setOnClickListener {
             resetFadeTimer(); panelManager.toggleSettingsPanel()
         }
+    }
+
+    /**
+     * ✅ منطق Click/Long-Press على أيقونة القلم نفسها في الـ Toolbar:
+     * - رفع الإصبع قبل 3 ثواني → toggleToolsPanel() (القائمة الأساسية)
+     * - استمرار الضغط 3 ثواني → togglePenNibsPopup() (البوب أب المتقدم)
+     * نفس منطق PanelManager.attachPenLongPress المُثبت، لكن هنا على زرار الـ Toolbar الرئيسي
+     */
+    private fun attachToolsButtonGestures(view: View) {
+        val btn = view.findViewById<View>(R.id.btn_tools) ?: return
+        val touchSlop = ViewConfiguration.get(service).scaledTouchSlop
+        var pressDownX = 0f
+        var pressDownY = 0f
+        var longPressArmed = false
+        var longPressFired = false
+        val LONG_PRESS_MS = 3000L
+
+        val longPressRunnable = Runnable {
+            if (!longPressArmed || longPressFired) return@Runnable
+            longPressFired = true
+            btn.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            resetFadeTimer()
+            panelManager.togglePenNibsPopup()
+        }
+
+        btn.setOnTouchListener { v, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    longPressArmed = true
+                    longPressFired = false
+                    pressDownX = event.rawX
+                    pressDownY = event.rawY
+                    v.postDelayed(longPressRunnable, LONG_PRESS_MS)
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    if (!longPressArmed) return@setOnTouchListener false
+                    val dx = abs(event.rawX - pressDownX)
+                    val dy = abs(event.rawY - pressDownY)
+                    if (dx > touchSlop * 3 || dy > touchSlop * 3) {
+                        longPressArmed = false
+                        v.removeCallbacks(longPressRunnable)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    v.removeCallbacks(longPressRunnable)
+                    if (!longPressFired && longPressArmed) {
+                        v.performClick()
+                        resetFadeTimer()
+                        panelManager.toggleToolsPanel()
+                    }
+                    longPressArmed = false
+                    longPressFired = false
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    v.removeCallbacks(longPressRunnable)
+                    longPressArmed = false
+                    longPressFired = false
+                    true
+                }
+                else -> false
+            }
+        }
+        btn.setOnClickListener(null)
     }
 
     private fun toggleCanvasVisibility() {
