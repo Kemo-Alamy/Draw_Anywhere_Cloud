@@ -32,20 +32,21 @@
 
     <style name="Widget.DrawAnywhere" parent="android:Widget"></style>
 
-    <!-- ✅ معدّل — رجع كبير وعريض زي الصورة المرجعية -->
+    <!-- ✅ ارتفاع 40dp + خط 9sp — متناسب مع عرض الحاوية الضيقة 150dp -->
     <style name="Widget.DrawAnywhere.ToolRow" parent="Widget.DrawAnywhere">
         <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">48dp</item>
+        <item name="android:layout_height">40dp</item>
         <item name="android:gravity">center</item>
-        <item name="android:textSize">14sp</item>
+        <item name="android:textSize">9sp</item>
         <item name="android:textColor">@color/tool_item_text_default</item>
         <item name="android:background">@drawable/bg_tool_item_default</item>
-        <item name="android:layout_marginStart">10dp</item>
-        <item name="android:layout_marginEnd">10dp</item>
-        <item name="android:layout_marginBottom">3dp</item>
+        <item name="android:layout_marginStart">6dp</item>
+        <item name="android:layout_marginEnd">6dp</item>
+        <item name="android:layout_marginBottom">2dp</item>
         <item name="android:fontFamily">sans-serif</item>
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
+        <item name="android:maxLines">1</item>
     </style>
 
     <style name="Widget.DrawAnywhere.ToolButton" parent="Widget.DrawAnywhere">
