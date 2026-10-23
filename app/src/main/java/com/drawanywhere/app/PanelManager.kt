@@ -31,19 +31,22 @@ class PanelManager(
         R.id.nib_laser       to DrawingTool.LASER
     )
 
+    private var toolsPagerRef: ViewPager2? = null
+
     init {
         DrawingTool.entries.forEach { tool -> toolStates[tool] = service.appPreferences.getToolState(tool) }
     }
 
     fun dismissAll() {
+        toolsPagerRef = null
         listOf(colorPanelView, toolsPanelView, settingsPanelView, penNibsPanelView).forEach { dismissPanel(it) }
         colorPanelView = null; toolsPanelView = null; settingsPanelView = null; penNibsPanelView = null
     }
 
-    // ─── Tools Panel (قائمة الأشكال — لو احتجت تفتحها من مكان تاني لاحقاً) ────
+    // ─── القائمة الأساسية (Click عادي) — Pen/Laser/Shapes/Erasers بصفحتين Swipe ─
 
     fun toggleToolsPanel() {
-        if (toolsPanelView != null) { dismissPanel(toolsPanelView); toolsPanelView = null; return }
+        if (toolsPanelView != null) { dismissPanel(toolsPanelView); toolsPanelView = null; toolsPagerRef = null; return }
         dismissAll(); showToolsPanel()
     }
 
@@ -51,6 +54,7 @@ class PanelManager(
         val v = inflate(R.layout.popup_tools_list_container)
         toolsPanelView = v
         val pager = v.findViewById<ViewPager2>(R.id.tools_pager)
+        toolsPagerRef = pager
         val dot0 = v.findViewById<View>(R.id.tools_dot_0); val dot1 = v.findViewById<View>(R.id.tools_dot_1)
         val adapter = ToolsListPagerAdapter(
             onPage1Ready = { page -> bindToolsListPage(page) },
@@ -67,10 +71,19 @@ class PanelManager(
     }
 
     private fun bindToolsListPage(page: View) {
+        // ✅ كل الأدوات: الصفحة الأولى Pen/Laser/Shapes/Erasers، الصفحة التانية Matte/Brush/Highlighter/Calligraphy/Lasso
         val toolButtons = listOf(
-            DrawingTool.LASSO to R.id.tool_lasso, DrawingTool.RECTANGLE to R.id.tool_rectangle,
-            DrawingTool.ELLIPSE to R.id.tool_ellipse, DrawingTool.STROKE_ERASER to R.id.tool_stroke_eraser,
-            DrawingTool.PIXEL_ERASER to R.id.tool_pixel_eraser
+            DrawingTool.PEN           to R.id.tool_pen,
+            DrawingTool.LASER         to R.id.tool_laser,
+            DrawingTool.RECTANGLE     to R.id.tool_rectangle,
+            DrawingTool.ELLIPSE       to R.id.tool_ellipse,
+            DrawingTool.STROKE_ERASER to R.id.tool_stroke_eraser,
+            DrawingTool.PIXEL_ERASER  to R.id.tool_pixel_eraser,
+            DrawingTool.MATTE_PEN     to R.id.tool_matte_pen,
+            DrawingTool.BRUSH         to R.id.tool_brush,
+            DrawingTool.HIGHLIGHTER   to R.id.tool_highlighter,
+            DrawingTool.CALLIGRAPHY   to R.id.tool_calligraphy,
+            DrawingTool.LASSO         to R.id.tool_lasso
         )
         for ((tool, id) in toolButtons) {
             val btn = page.findViewById<TextView>(id) ?: continue
@@ -82,14 +95,13 @@ class PanelManager(
     }
 
     private fun selectTool(tool: DrawingTool) {
-        val state = toolStates.getOrPut(tool) { service.appPreferences.getToolState(tool) }
-        drawingCanvas.switchTool(tool, state)
-        toolbarManager.updateColorDot(state.color)
+        drawingCanvas.switchTool(tool, currentStateFor(tool))
+        toolbarManager.updateColorDot(currentStateFor(tool).color)
         toolbarManager.updateToolIcon(tool)
-        dismissPanel(toolsPanelView); toolsPanelView = null
+        dismissPanel(toolsPanelView); toolsPanelView = null; toolsPagerRef = null
     }
 
-    // ─── Pen Nibs Popup (✅ الأساسي الآن — بيفتح مباشرة من أيقونة القلم) ──────
+    // ─── Pen Nibs Popup (Long-Press 3 ثواني — من الـ Toolbar فقط) ─────────────
 
     fun togglePenNibsPopup() {
         if (penNibsPanelView != null) { dismissPanel(penNibsPanelView); penNibsPanelView = null; return }
@@ -104,12 +116,10 @@ class PanelManager(
         val dot0  = v.findViewById<View>(R.id.pen_nibs_dot_0)
         val dot1  = v.findViewById<View>(R.id.pen_nibs_dot_1)
 
-        // لو الأداة الحالية مش من ضمن الريش الستة (زي Shape/Eraser)، نبدأ بالـ Pen كافتراضي
         val startTool = if (drawingCanvas.currentTool in nibIconToTool.values) drawingCanvas.currentTool else DrawingTool.PEN
 
-        var page1Ref: View? = null
         val adapter = PenNibsPagerAdapter(
-            onPage1Ready = { page -> page1Ref = page; bindPenNibsPage1(page, startTool) },
+            onPage1Ready = { page -> bindPenNibsPage1(page, startTool) },
             onPage2Ready = { page -> bindPenNibsPage2(page, startTool) }
         )
         pager?.adapter = adapter
@@ -125,7 +135,6 @@ class PanelManager(
         addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON)
     }
 
-    /** يحدد الحالة المرتفعة (Active Raised) للريشة المختارة + يحدث كل حاجة */
     private fun bindPenNibsPage1(page: View, selectedTool: DrawingTool) {
         page.findViewById<TextView>(R.id.tv_pen_nibs_title)?.text = selectedTool.displayName
 
@@ -136,7 +145,6 @@ class PanelManager(
             val icon = page.findViewById<ImageView>(iconId) ?: continue
             val isSelected = tool == selectedTool
 
-            // ✅ حالة الارتفاع — الريشة المختارة ترتفع للأعلى بـ Animation سلس
             ObjectAnimator.ofFloat(icon, View.TRANSLATION_Y, icon.translationY, if (isSelected) -raiseDistance else 0f)
                 .apply { duration = 180L; start() }
             icon.alpha = if (isSelected) 1f else 0.6f
@@ -145,15 +153,14 @@ class PanelManager(
                 drawingCanvas.switchTool(tool, currentStateFor(tool))
                 toolbarManager.updateColorDot(currentStateFor(tool).color)
                 toolbarManager.updateToolIcon(tool)
-                bindPenNibsPage1(page, tool) // إعادة الربط عشان يرتفع المختار الجديد وينزل القديم
+                bindPenNibsPage1(page, tool)
             }
         }
 
-        // ✅ Slider الحجم بيتحكم في عرض الأداة الحالية فقط
         val widthLabel = page.findViewById<TextView>(R.id.label_pen_width_value)
         page.findViewById<SeekBar>(R.id.seek_pen_width)?.apply {
             setOnSeekBarChangeListener(null)
-            val st = currentStateFor(selectedTool)
+            val st = currentStateFor(drawingCanvas.currentTool)
             max = 95; progress = (st.strokeWidth - 5f).toInt().coerceIn(0, 95)
             widthLabel?.text = "${st.strokeWidth.toInt()}px"
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -170,7 +177,6 @@ class PanelManager(
             })
         }
 
-        // ✅ الألوان السريعة — بتطبق على كل الأقلام المشتركة مرة واحدة، عدا الهايلايتر بيطبق على نفسه بس
         val quickColorIds = listOf(R.id.pen_color_01, R.id.pen_color_02, R.id.pen_color_03, R.id.pen_color_04, R.id.pen_color_05, R.id.pen_color_06)
         quickColorIds.forEach { id ->
             page.findViewById<View>(id)?.setOnClickListener {
@@ -216,7 +222,10 @@ class PanelManager(
         }
     }
 
-    /** ✅ اللون بيتطبق على الأداة الحالية + يتبقى مشترك لكل الأقلام (عدا الهايلايتر المستقل) */
+    /**
+     * ✅ اللون الموحّد — بيتطبق على الأداة الحالية فوراً، وبيتحفظ كلون مشترك عام
+     * لكل الأقلام (ما عدا الهايلايتر اللي له لونه الشفاف المستقل)
+     */
     private fun applySharedColor(color: Int) {
         val tool = drawingCanvas.currentTool
         if (tool == DrawingTool.HIGHLIGHTER) {
@@ -231,12 +240,11 @@ class PanelManager(
 
     private fun currentStateFor(tool: DrawingTool): ToolState =
         toolStates.getOrPut(tool) { service.appPreferences.getToolState(tool) }.also {
-            // تحديث اللون دايماً من المصدر المشترك عشان لو اتغير من أداة تانية
             if (tool != DrawingTool.HIGHLIGHTER && tool != DrawingTool.LASER) it.color = service.appPreferences.globalPenColor
             if (tool == DrawingTool.HIGHLIGHTER) it.color = service.appPreferences.highlighterColor
         }
 
-    // ─── Color Panel (عام — برا الأقلام، بيستخدمه زرار اللون في الـ Toolbar) ──
+    // ─── Color Panel (زرار اللون في الـ Toolbar مباشرة) ───────────────────────
 
     fun toggleColorPanel() {
         if (colorPanelView != null) { dismissPanel(colorPanelView); colorPanelView = null; return }
