@@ -51,8 +51,6 @@ class ToolbarManager(
 
     private var hasContent = false
 
-    // ─── Lifecycle ────────────────────────────────────────────────────────────
-
     fun init(orientation: ToolbarOrientation) = inflate(orientation)
 
     fun destroy() {
@@ -63,9 +61,6 @@ class ToolbarManager(
 
     fun changeOrientation(orientation: ToolbarOrientation) { destroy(); inflate(orientation) }
 
-    // ─── Public Sync ──────────────────────────────────────────────────────────
-
-    /** ✅ بيلوّن أيقونة الـ Droplet مباشرة باللون الحالي المختار */
     fun updateColorDot(color: Int) {
         toolbarView?.findViewById<ColorDropView>(R.id.view_color_dot)?.setColor(color)
     }
@@ -96,29 +91,20 @@ class ToolbarManager(
         toolbarView?.findViewById<ImageView>(R.id.btn_tools)?.setImageResource(iconRes)
     }
 
-    // ─── Inflate ──────────────────────────────────────────────────────────────
-
     private fun inflate(orientation: ToolbarOrientation) {
-        val layoutId = if (orientation == ToolbarOrientation.HORIZONTAL)
-            R.layout.overlay_toolbar_horizontal
-        else
-            R.layout.overlay_toolbar_vertical
-
+        val layoutId = if (orientation == ToolbarOrientation.HORIZONTAL) R.layout.overlay_toolbar_horizontal else R.layout.overlay_toolbar_vertical
         val view = LayoutInflater.from(service).inflate(layoutId, null)
         toolbarView = view
 
         val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
             overlayType(),
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                    or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply { gravity = Gravity.TOP or Gravity.START; x = 30; y = 80 }
         toolbarParams = params
 
-        view.findViewById<ImageView>(R.id.btn_tools)
-            ?.setImageResource(toolIconMap[drawingCanvas.currentTool] ?: R.drawable.ic_pen)
+        view.findViewById<ImageView>(R.id.btn_tools)?.setImageResource(toolIconMap[drawingCanvas.currentTool] ?: R.drawable.ic_pen)
 
         setupButtons(view)
         setupDrag(view, params)
@@ -129,8 +115,6 @@ class ToolbarManager(
         updateFingerIndicator(service.appPreferences.fingerDrawing)
         updateContentState(hasContent)
     }
-
-    // ─── Buttons ──────────────────────────────────────────────────────────────
 
     private fun setupButtons(view: View) {
 
@@ -153,8 +137,9 @@ class ToolbarManager(
             service.launchImagePicker()
         }
 
+        // ✅ أيقونة القلم في الشريط — بتفتح بوب أب الريش الجرافيكية مباشرة (مش قائمة Pen النصية)
         view.findViewById<View>(R.id.btn_tools)?.setOnClickListener {
-            resetFadeTimer(); panelManager.toggleToolsPanel()
+            resetFadeTimer(); panelManager.togglePenNibsPopup()
         }
 
         view.findViewById<View>(R.id.view_color_dot)?.setOnClickListener {
@@ -173,18 +158,13 @@ class ToolbarManager(
         }
     }
 
-    // ─── Toggle Canvas Visibility (Eye) ───────────────────────────────────────
-
     private fun toggleCanvasVisibility() {
         canvasVisible = !canvasVisible
-        if (!canvasVisible && service.appPreferences.clearOnHide)
-            drawingCanvas.clearAll()
+        if (!canvasVisible && service.appPreferences.clearOnHide) drawingCanvas.clearAll()
         drawingCanvas.visibility = if (canvasVisible) View.VISIBLE else View.INVISIBLE
         service.setCanvasTouchable(canvasVisible && service.appPreferences.fingerDrawing)
-
         val eyeIcon = toolbarView?.findViewById<ImageView>(R.id.btn_hide)
         eyeIcon?.setImageResource(if (canvasVisible) R.drawable.ic_eye else R.drawable.ic_eye_closed)
-
         collapseToolbar(!canvasVisible)
     }
 
@@ -193,87 +173,58 @@ class ToolbarManager(
         val params = toolbarParams ?: return
 
         val transition = TransitionSet().apply {
-            addTransition(Fade(Fade.OUT))
-            addTransition(android.transition.ChangeBounds())
-            addTransition(Fade(Fade.IN))
-            ordering = TransitionSet.ORDERING_TOGETHER
-            duration = 480L
-            interpolator = DecelerateInterpolator(1.4f)
+            addTransition(Fade(Fade.OUT)); addTransition(android.transition.ChangeBounds()); addTransition(Fade(Fade.IN))
+            ordering = TransitionSet.ORDERING_TOGETHER; duration = 480L; interpolator = DecelerateInterpolator(1.4f)
         }
         TransitionManager.beginDelayedTransition(v, transition)
 
         val vis = if (collapse) View.GONE else View.VISIBLE
-        listOf(
-            R.id.btn_undo, R.id.btn_clear, R.id.btn_add_image,
-            R.id.btn_tools, R.id.view_color_dot,
-            R.id.btn_finger, R.id.btn_settings,
-            R.id.toolbar_divider
-        ).forEach { id -> v.findViewById<View>(id)?.visibility = vis }
+        listOf(R.id.btn_undo, R.id.btn_clear, R.id.btn_add_image, R.id.btn_tools, R.id.view_color_dot, R.id.btn_finger, R.id.btn_settings, R.id.toolbar_divider)
+            .forEach { id -> v.findViewById<View>(id)?.visibility = vis }
 
-        v.setBackgroundResource(
-            if (collapse) R.drawable.bg_toolbar_collapsed else R.drawable.bg_toolbar
-        )
-
-        v.post {
-            try { windowManager.updateViewLayout(v, params) } catch (_: Exception) { }
-        }
+        v.setBackgroundResource(if (collapse) R.drawable.bg_toolbar_collapsed else R.drawable.bg_toolbar)
+        v.post { try { windowManager.updateViewLayout(v, params) } catch (_: Exception) { } }
     }
-
-    // ─── Drag ─────────────────────────────────────────────────────────────────
 
     private fun setupDrag(view: View, params: WindowManager.LayoutParams) {
         view.setOnTouchListener { _, event ->
             restoreOpacity(); resetFadeTimer()
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    isDragging = false
-                    dragStartRawX = event.rawX; dragStartRawY = event.rawY
+                    isDragging = false; dragStartRawX = event.rawX; dragStartRawY = event.rawY
                     windowInitX = params.x; windowInitY = params.y
                     false
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    val dx = event.rawX - dragStartRawX
-                    val dy = event.rawY - dragStartRawY
+                    val dx = event.rawX - dragStartRawX; val dy = event.rawY - dragStartRawY
                     if (!isDragging && (abs(dx) > DRAG_THRESHOLD || abs(dy) > DRAG_THRESHOLD)) isDragging = true
                     if (isDragging) {
-                        params.x = (windowInitX + dx).toInt()
-                        params.y = (windowInitY + dy).toInt()
+                        params.x = (windowInitX + dx).toInt(); params.y = (windowInitY + dy).toInt()
                         try { windowManager.updateViewLayout(view, params) } catch (_: Exception) {}
                         true
                     } else false
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    val was = isDragging; isDragging = false; was
-                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { val was = isDragging; isDragging = false; was }
                 else -> false
             }
         }
     }
 
-    // ─── Idle Fade ────────────────────────────────────────────────────────────
-
     private fun scheduleIdleFade() {
         fadeHandler.removeCallbacksAndMessages(null)
         fadeHandler.postDelayed({ fadeOut() }, FADE_DELAY_MS)
     }
-
     private fun resetFadeTimer() { if (isFaded) restoreOpacity(); scheduleIdleFade() }
-
     private fun fadeOut() {
-        val v = toolbarView ?: return
-        isFaded = true
+        val v = toolbarView ?: return; isFaded = true
         ObjectAnimator.ofFloat(v, View.ALPHA, v.alpha, 0.28f).apply { duration = 500L; start() }
     }
-
     private fun restoreOpacity() {
-        val v = toolbarView ?: return
-        if (!isFaded) return
-        isFaded = false
+        val v = toolbarView ?: return; if (!isFaded) return; isFaded = false
         ObjectAnimator.ofFloat(v, View.ALPHA, v.alpha, 1f).apply { duration = 120L; start() }
     }
 
     private fun overlayType(): Int =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         else @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
 }
