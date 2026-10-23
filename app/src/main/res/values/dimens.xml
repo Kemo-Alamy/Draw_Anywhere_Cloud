@@ -5,6 +5,9 @@
     <dimen name="popup_unified_radius">18dp</dimen>
     <dimen name="popup_dots_row_height">24dp</dimen>
 
-    <!-- ✅ جديد — عرض مخصص لقائمة الأدوات يطابق الصورة المرجعية بالظبط -->
-    <dimen name="popup_tools_list_width">190dp</dimen>
+    <!-- ✅ قائمة الأشكال (Rectangle/Ellipse/Eraser/Lasso) — ضيقة زي حجم أيقونة Settings -->
+    <dimen name="popup_tools_list_width">150dp</dimen>
+
+    <!-- ✅ بوب أب الأقلام الجرافيكية — عرض أوسع شوية يسع الريش الستة -->
+    <dimen name="popup_pen_nibs_width">250dp</dimen>
 </resources>
