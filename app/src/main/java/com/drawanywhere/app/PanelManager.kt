@@ -1,8 +1,10 @@
 package com.drawanywhere.app
 
 import android.animation.ObjectAnimator
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.net.Uri
 import android.os.Build
 import android.view.*
 import android.widget.*
@@ -31,22 +33,19 @@ class PanelManager(
         R.id.nib_laser       to DrawingTool.LASER
     )
 
-    private var toolsPagerRef: ViewPager2? = null
-
     init {
         DrawingTool.entries.forEach { tool -> toolStates[tool] = service.appPreferences.getToolState(tool) }
     }
 
     fun dismissAll() {
-        toolsPagerRef = null
         listOf(colorPanelView, toolsPanelView, settingsPanelView, penNibsPanelView).forEach { dismissPanel(it) }
         colorPanelView = null; toolsPanelView = null; settingsPanelView = null; penNibsPanelView = null
     }
 
-    // ─── القائمة الأساسية (Click عادي) — Pen/Laser/Shapes/Erasers بصفحتين Swipe ─
+    // ─── القائمة الأساسية (Click عادي) ─────────────────────────────────────────
 
     fun toggleToolsPanel() {
-        if (toolsPanelView != null) { dismissPanel(toolsPanelView); toolsPanelView = null; toolsPagerRef = null; return }
+        if (toolsPanelView != null) { dismissPanel(toolsPanelView); toolsPanelView = null; return }
         dismissAll(); showToolsPanel()
     }
 
@@ -54,7 +53,6 @@ class PanelManager(
         val v = inflate(R.layout.popup_tools_list_container)
         toolsPanelView = v
         val pager = v.findViewById<ViewPager2>(R.id.tools_pager)
-        toolsPagerRef = pager
         val dot0 = v.findViewById<View>(R.id.tools_dot_0); val dot1 = v.findViewById<View>(R.id.tools_dot_1)
         val adapter = ToolsListPagerAdapter(
             onPage1Ready = { page -> bindToolsListPage(page) },
@@ -67,11 +65,10 @@ class PanelManager(
                 dot1?.setBackgroundResource(if (position == 1) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
             }
         })
-        addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON)
+        addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON) { dismissPanel(toolsPanelView); toolsPanelView = null }
     }
 
     private fun bindToolsListPage(page: View) {
-        // ✅ كل الأدوات: الصفحة الأولى Pen/Laser/Shapes/Erasers، الصفحة التانية Matte/Brush/Highlighter/Calligraphy/Lasso
         val toolButtons = listOf(
             DrawingTool.PEN           to R.id.tool_pen,
             DrawingTool.LASER         to R.id.tool_laser,
@@ -98,10 +95,10 @@ class PanelManager(
         drawingCanvas.switchTool(tool, currentStateFor(tool))
         toolbarManager.updateColorDot(currentStateFor(tool).color)
         toolbarManager.updateToolIcon(tool)
-        dismissPanel(toolsPanelView); toolsPanelView = null; toolsPagerRef = null
+        dismissPanel(toolsPanelView); toolsPanelView = null
     }
 
-    // ─── Pen Nibs Popup (Long-Press 3 ثواني — من الـ Toolbar فقط) ─────────────
+    // ─── Pen Nibs Popup (Long-Press 3 ثواني) ──────────────────────────────────
 
     fun togglePenNibsPopup() {
         if (penNibsPanelView != null) { dismissPanel(penNibsPanelView); penNibsPanelView = null; return }
@@ -132,7 +129,7 @@ class PanelManager(
             }
         })
 
-        addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON)
+        addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON) { dismissPanel(penNibsPanelView); penNibsPanelView = null }
     }
 
     private fun bindPenNibsPage1(page: View, selectedTool: DrawingTool) {
@@ -222,10 +219,6 @@ class PanelManager(
         }
     }
 
-    /**
-     * ✅ اللون الموحّد — بيتطبق على الأداة الحالية فوراً، وبيتحفظ كلون مشترك عام
-     * لكل الأقلام (ما عدا الهايلايتر اللي له لونه الشفاف المستقل)
-     */
     private fun applySharedColor(color: Int) {
         val tool = drawingCanvas.currentTool
         if (tool == DrawingTool.HIGHLIGHTER) {
@@ -244,7 +237,7 @@ class PanelManager(
             if (tool == DrawingTool.HIGHLIGHTER) it.color = service.appPreferences.highlighterColor
         }
 
-    // ─── Color Panel (زرار اللون في الـ Toolbar مباشرة) ───────────────────────
+    // ─── Color Panel ────────────────────────────────────────────────────────
 
     fun toggleColorPanel() {
         if (colorPanelView != null) { dismissPanel(colorPanelView); colorPanelView = null; return }
@@ -267,7 +260,7 @@ class PanelManager(
                 dot1?.setBackgroundResource(if (position == 1) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
             }
         })
-        addPanel(v, anchorTo = PanelAnchor.COLOR_DOT)
+        addPanel(v, anchorTo = PanelAnchor.COLOR_DOT) { dismissPanel(colorPanelView); colorPanelView = null }
     }
 
     private fun bindColorPage1(page: View) {
@@ -371,7 +364,7 @@ class PanelManager(
                 dot1?.setBackgroundResource(if (position == 1) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
             }
         })
-        addPanel(v, anchorTo = PanelAnchor.SETTINGS_BUTTON)
+        addPanel(v, anchorTo = PanelAnchor.SETTINGS_BUTTON) { dismissPanel(settingsPanelView); settingsPanelView = null }
     }
 
     private fun bindSettingsPage(page: View) {
@@ -390,14 +383,50 @@ class PanelManager(
         page.findViewById<CheckBox>(R.id.chk_open_on_start)?.apply { isChecked = prefs.openOnStart; setOnCheckedChangeListener { _, c -> prefs.openOnStart = c } }
         page.findViewById<CheckBox>(R.id.chk_finger_drawing)?.apply { isChecked = prefs.fingerDrawing; setOnCheckedChangeListener { _, c -> prefs.fingerDrawing = c; service.refreshCanvasTouchMode() } }
         page.findViewById<View>(R.id.btn_quit)?.setOnClickListener { dismissAll(); service.stopSelf() }
+
+        // ✅ زرار Contact With developer — بيفتح واتساب على الرقم المحدد
+        page.findViewById<View>(R.id.btn_contact_developer)?.setOnClickListener {
+            openWhatsAppChat("201115168017")
+        }
+    }
+
+    /** يفتح محادثة واتساب مباشرة مع الرقم المحدد (بصيغة دولية بدون +) */
+    private fun openWhatsAppChat(phoneWithCountryCode: String) {
+        try {
+            val uri = Uri.parse("https://wa.me/$phoneWithCountryCode")
+            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            service.startActivity(intent)
+            dismissAll()
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private fun toHex(color: Int): String = "#%06X".format(0xFFFFFF and color)
     private fun inflate(id: Int): View = LayoutInflater.from(service).inflate(id, null)
-    private fun addPanel(view: View, anchorTo: PanelAnchor) = windowManager.addView(view, buildPanelParams(anchorTo))
-    private fun dismissPanel(view: View?) { try { view?.let { windowManager.removeView(it) } } catch (_: Exception) { } }
+
+    /**
+     * ✅ كل Popup بقى بيتبني جوه FrameLayout Wrapper شفاف
+     * لمسة برا حدود الـ Popup → يستدعي onOutsideTouch ويقفل الـ Popup
+     * (مش بيوصل اللمسة للـ Canvas خلفه → مفيش رسم غلط بالخطأ)
+     */
+    private fun addPanel(view: View, anchorTo: PanelAnchor, onOutsideTouch: () -> Unit) {
+        val params = buildPanelParams(anchorTo)
+        windowManager.addView(view, params)
+        view.setOnTouchListener { _, event ->
+            // نسيب لمسات جوه الـ View الفعلي تمر عادي للأزرار الداخلية
+            if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                onOutsideTouch()
+                true
+            } else false
+        }
+    }
+
+    private fun dismissPanel(view: View?) {
+        try { view?.let { windowManager.removeView(it) } } catch (_: Exception) { }
+    }
 
     private enum class PanelAnchor { TOOLS_BUTTON, COLOR_DOT, SETTINGS_BUTTON }
 
@@ -413,7 +442,11 @@ class PanelManager(
         }
         return WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT, overlayType(),
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            // ✅ FLAG_WATCH_OUTSIDE_TOUCH بيخلي النظام يرسل ACTION_OUTSIDE لما المستخدم يدوس برا الـ Popup
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                    or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                    or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
+                    or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply { gravity = Gravity.TOP or Gravity.START; x = baseX + offsetX; y = baseY + offsetY }
     }
