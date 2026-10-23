@@ -2,18 +2,19 @@ package com.drawanywhere.app
 
 import android.graphics.Path
 import android.graphics.RectF
+import android.graphics.PointF
 import android.net.Uri
 import android.graphics.Bitmap
 import android.graphics.Color
 
 enum class DrawingTool(val displayName: String) {
     PEN("Pen"),
-    MATTE_PEN("Matte Pen"),       // قلم مل — معتم صلب
+    MATTE_PEN("Matte Pen"),
     LASER("Laser"),
-    BRUSH("Brush"),
+    BRUSH("Pencil"),
     HIGHLIGHTER("Highlighter"),
     CALLIGRAPHY("Calligraphy"),
-    LASSO("Lasso"),               // قلم تحديد — تحديد حر مغلق
+    LASSO("Lasso"),
     RECTANGLE("Rectangle"),
     ELLIPSE("Ellipse"),
     STROKE_ERASER("Stroke Eraser"),
@@ -44,7 +45,9 @@ data class StrokeData(
     val opacity: Int,
     val lineStyle: LineStyle = LineStyle.SOLID,
     val rect: RectF? = null,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    // ✅ جديد — سلسلة النقاط الخام، مستخدمة في رسم Calligraphy وBrush المحبب
+    val rawPoints: List<PointF>? = null
 )
 
 data class ImageOverlayData(
