@@ -62,7 +62,7 @@ class DrawingCanvas(context: Context) : View(context) {
 
     init { setLayerType(LAYER_TYPE_SOFTWARE, null) }
 
-    // ─── Public API ───────────────────────────────────────────────────────────
+    // ─── Public API ────────────────────────────────────────────────────────[...]
 
     fun applyToolState(tool: DrawingTool, state: ToolState) {
         if (tool == currentTool) {
@@ -235,7 +235,7 @@ class DrawingCanvas(context: Context) : View(context) {
         }
     }
 
-    // ─── onDraw ───────────────────────────────────────────────────────────────
+    // ─── onDraw ─────────────────────────────────────────────────────────[...]
 
     override fun onDraw(canvas: Canvas) {
         for (img in imageOverlays) {
@@ -301,6 +301,15 @@ class DrawingCanvas(context: Context) : View(context) {
                 val live = StrokeData(DrawingTool.HIGHLIGHTER, path, currentColor, currentStrokeWidth, currentOpacity)
                 drawHighlighter(canvas, path, live)
             }
+            DrawingTool.LASER -> {
+                strokePaint.apply {
+                    color = LASER_COLOR; alpha = 255; strokeWidth = currentStrokeWidth
+                    xfermode = null; maskFilter = BlurMaskFilter(currentStrokeWidth * 0.5f, BlurMaskFilter.Blur.SOLID)
+                    pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE
+                }
+                canvas.drawPath(path, strokePaint)
+                strokePaint.maskFilter = null
+            }
             DrawingTool.LASSO -> {
                 strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
                     xfermode = null; maskFilter = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
@@ -311,7 +320,7 @@ class DrawingCanvas(context: Context) : View(context) {
         }
     }
 
-    // ─── Touch ────────────────────────────────────────────────────────────────
+    // ─── Touch ─────────────────────────────────────────────────────────�[...]
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (!fingerDrawingEnabled) return false
