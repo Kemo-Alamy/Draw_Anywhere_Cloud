@@ -1,16 +1,12 @@
 package com.drawanywhere.app
 
+import android.animation.ObjectAnimator
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.view.*
 import android.widget.*
 import androidx.viewpager2.widget.ViewPager2
-import kotlin.math.abs
-
-private class PenEditingState(var tool: DrawingTool)
 
 class PanelManager(
     private val service: DrawingService,
@@ -19,199 +15,70 @@ class PanelManager(
     lateinit var drawingCanvas: DrawingCanvas
     lateinit var toolbarManager: ToolbarManager
 
-    private var colorPanelView:      View? = null
-    private var toolsPanelView:      View? = null
-    private var settingsPanelView:   View? = null
-    private var penOptionsPanelView: View? = null
+    private var colorPanelView:    View? = null
+    private var toolsPanelView:    View? = null
+    private var settingsPanelView: View? = null
+    private var penNibsPanelView:  View? = null
 
     private val toolStates = mutableMapOf<DrawingTool, ToolState>()
 
-    private var toolsPagerRef: ViewPager2? = null
-
-    private val penTypeIconMap = mapOf(
-        DrawingTool.PEN         to R.id.pen_icon_pen,
-        DrawingTool.MATTE_PEN   to R.id.pen_icon_matte,
-        DrawingTool.LASER       to R.id.pen_icon_laser,
-        DrawingTool.BRUSH       to R.id.pen_icon_brush,
-        DrawingTool.HIGHLIGHTER to R.id.pen_icon_highlighter,
-        DrawingTool.CALLIGRAPHY to R.id.pen_icon_calligraphy
-    )
-
-    private val penLikeTools = setOf(
-        DrawingTool.PEN, DrawingTool.MATTE_PEN, DrawingTool.LASER,
-        DrawingTool.BRUSH, DrawingTool.HIGHLIGHTER, DrawingTool.CALLIGRAPHY
+    private val nibIconToTool = mapOf(
+        R.id.nib_pen         to DrawingTool.PEN,
+        R.id.nib_calligraphy to DrawingTool.CALLIGRAPHY,
+        R.id.nib_matte       to DrawingTool.MATTE_PEN,
+        R.id.nib_brush       to DrawingTool.BRUSH,
+        R.id.nib_highlighter to DrawingTool.HIGHLIGHTER,
+        R.id.nib_laser       to DrawingTool.LASER
     )
 
     init {
-        DrawingTool.entries.forEach { tool ->
-            toolStates[tool] = service.appPreferences.getToolState(tool)
-        }
+        DrawingTool.entries.forEach { tool -> toolStates[tool] = service.appPreferences.getToolState(tool) }
     }
-
-    // ─── Dismiss ─────────────────────────────────────────────────────────────
 
     fun dismissAll() {
-        toolsPagerRef = null
-        listOf(colorPanelView, toolsPanelView, settingsPanelView, penOptionsPanelView)
-            .forEach { dismissPanel(it) }
-        colorPanelView = null; toolsPanelView = null
-        settingsPanelView = null; penOptionsPanelView = null
+        listOf(colorPanelView, toolsPanelView, settingsPanelView, penNibsPanelView).forEach { dismissPanel(it) }
+        colorPanelView = null; toolsPanelView = null; settingsPanelView = null; penNibsPanelView = null
     }
 
-    // ─── Tools Panel ─────────────────────────────────────────────────────────
+    // ─── Tools Panel (قائمة الأشكال — لو احتجت تفتحها من مكان تاني لاحقاً) ────
 
     fun toggleToolsPanel() {
-        if (toolsPanelView != null) {
-            dismissPanel(toolsPanelView); toolsPanelView = null; toolsPagerRef = null; return
-        }
+        if (toolsPanelView != null) { dismissPanel(toolsPanelView); toolsPanelView = null; return }
         dismissAll(); showToolsPanel()
     }
 
     private fun showToolsPanel() {
         val v = inflate(R.layout.popup_tools_list_container)
         toolsPanelView = v
-
         val pager = v.findViewById<ViewPager2>(R.id.tools_pager)
-        toolsPagerRef = pager
-        val dot0  = v.findViewById<View>(R.id.tools_dot_0)
-        val dot1  = v.findViewById<View>(R.id.tools_dot_1)
-
+        val dot0 = v.findViewById<View>(R.id.tools_dot_0); val dot1 = v.findViewById<View>(R.id.tools_dot_1)
         val adapter = ToolsListPagerAdapter(
             onPage1Ready = { page -> bindToolsListPage(page) },
             onPage2Ready = { page -> bindToolsListPage(page) }
         )
-        pager?.adapter = adapter
-        pager?.offscreenPageLimit = 2
-
+        pager?.adapter = adapter; pager?.offscreenPageLimit = 2
         pager?.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 dot0?.setBackgroundResource(if (position == 0) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
                 dot1?.setBackgroundResource(if (position == 1) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
             }
         })
-
         addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON)
     }
 
     private fun bindToolsListPage(page: View) {
         val toolButtons = listOf(
-            DrawingTool.PEN           to R.id.tool_pen,
-            DrawingTool.MATTE_PEN     to R.id.tool_matte_pen,
-            DrawingTool.LASER         to R.id.tool_laser,
-            DrawingTool.BRUSH         to R.id.tool_brush,
-            DrawingTool.HIGHLIGHTER   to R.id.tool_highlighter,
-            DrawingTool.CALLIGRAPHY   to R.id.tool_calligraphy,
-            DrawingTool.LASSO         to R.id.tool_lasso,
-            DrawingTool.RECTANGLE     to R.id.tool_rectangle,
-            DrawingTool.ELLIPSE       to R.id.tool_ellipse,
-            DrawingTool.STROKE_ERASER to R.id.tool_stroke_eraser,
-            DrawingTool.PIXEL_ERASER  to R.id.tool_pixel_eraser
+            DrawingTool.LASSO to R.id.tool_lasso, DrawingTool.RECTANGLE to R.id.tool_rectangle,
+            DrawingTool.ELLIPSE to R.id.tool_ellipse, DrawingTool.STROKE_ERASER to R.id.tool_stroke_eraser,
+            DrawingTool.PIXEL_ERASER to R.id.tool_pixel_eraser
         )
-
         for ((tool, id) in toolButtons) {
             val btn = page.findViewById<TextView>(id) ?: continue
-
             val isActive = drawingCanvas.currentTool == tool
-            btn.setBackgroundResource(
-                if (isActive) R.drawable.bg_tool_item_selected else R.drawable.bg_tool_item_default
-            )
-            btn.setTextColor(
-                if (isActive) service.getColor(R.color.tool_item_text_selected)
-                else          service.getColor(R.color.tool_item_text_default)
-            )
-
-            if (tool in penLikeTools) {
-                attachPenLongPress(btn, tool)
-            } else {
-                btn.setOnTouchListener(null)
-                btn.setOnClickListener { selectTool(tool) }
-            }
+            btn.setBackgroundResource(if (isActive) R.drawable.bg_tool_item_selected else R.drawable.bg_tool_item_default)
+            btn.setTextColor(if (isActive) service.getColor(R.color.tool_item_text_selected) else service.getColor(R.color.tool_item_text_default))
+            btn.setOnClickListener { selectTool(tool) }
         }
-    }
-
-    /**
-     * ✅ الحل النهائي من تحليل Copilot:
-     * - الـ Runnable متربوط بالـ View نفسها (postDelayed/removeCallbacks) بدل Handler منفصل
-     * - requestDisallowInterceptTouchEvent بيتوجه لكل من الأب المباشر وللـ ViewPager2 نفسه معاً
-     * - مفيش OnClickListener متضارب على نفس الزرار — الـ Touch هو المتحكم الوحيد في كل حاجة
-     */
-    private fun attachPenLongPress(btn: TextView, tool: DrawingTool) {
-        val touchSlop = ViewConfiguration.get(service).scaledTouchSlop
-        var pressDownX = 0f
-        var pressDownY = 0f
-        var longPressArmed = false
-        var longPressFired = false
-
-        val longPressRunnable = Runnable {
-            if (!longPressArmed || longPressFired) return@Runnable
-            longPressFired = true
-            btn.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-            showPenOptionsPopup(tool)
-        }
-
-        btn.setOnTouchListener { v, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    longPressArmed = true
-                    longPressFired = false
-                    pressDownX = event.rawX
-                    pressDownY = event.rawY
-
-                    v.parent?.requestDisallowInterceptTouchEvent(true)
-                    toolsPagerRef?.requestDisallowInterceptTouchEvent(true)
-                    toolsPagerRef?.isUserInputEnabled = false
-
-                    v.postDelayed(longPressRunnable, 3000L)
-                    true
-                }
-
-                MotionEvent.ACTION_MOVE -> {
-                    if (!longPressArmed) return@setOnTouchListener false
-
-                    val dx = abs(event.rawX - pressDownX)
-                    val dy = abs(event.rawY - pressDownY)
-                    val movedTooFar = dx > touchSlop * 3 || dy > touchSlop * 3
-
-                    if (movedTooFar) {
-                        longPressArmed = false
-                        v.removeCallbacks(longPressRunnable)
-                        toolsPagerRef?.isUserInputEnabled = true
-                        v.parent?.requestDisallowInterceptTouchEvent(false)
-                        toolsPagerRef?.requestDisallowInterceptTouchEvent(false)
-                    }
-                    true
-                }
-
-                MotionEvent.ACTION_UP -> {
-                    v.removeCallbacks(longPressRunnable)
-
-                    if (!longPressFired && longPressArmed) {
-                        v.performClick()
-                        selectTool(tool)
-                    }
-
-                    longPressArmed = false
-                    longPressFired = false
-                    toolsPagerRef?.isUserInputEnabled = true
-                    v.parent?.requestDisallowInterceptTouchEvent(false)
-                    toolsPagerRef?.requestDisallowInterceptTouchEvent(false)
-                    true
-                }
-
-                MotionEvent.ACTION_CANCEL -> {
-                    v.removeCallbacks(longPressRunnable)
-                    longPressArmed = false
-                    longPressFired = false
-                    toolsPagerRef?.isUserInputEnabled = true
-                    v.parent?.requestDisallowInterceptTouchEvent(false)
-                    toolsPagerRef?.requestDisallowInterceptTouchEvent(false)
-                    true
-                }
-
-                else -> false
-            }
-        }
-        btn.setOnClickListener(null)
     }
 
     private fun selectTool(tool: DrawingTool) {
@@ -219,29 +86,31 @@ class PanelManager(
         drawingCanvas.switchTool(tool, state)
         toolbarManager.updateColorDot(state.color)
         toolbarManager.updateToolIcon(tool)
-        dismissPanel(toolsPanelView); toolsPanelView = null; toolsPagerRef = null
+        dismissPanel(toolsPanelView); toolsPanelView = null
     }
 
-    // ─── Pen Options Popup ───────────────────────────────────────────────────
+    // ─── Pen Nibs Popup (✅ الأساسي الآن — بيفتح مباشرة من أيقونة القلم) ──────
 
-    private fun showPenOptionsPopup(initialTool: DrawingTool) {
-        dismissPanel(toolsPanelView); toolsPanelView = null; toolsPagerRef = null
-        dismissPanel(colorPanelView); colorPanelView = null
-        dismissPanel(settingsPanelView); settingsPanelView = null
+    fun togglePenNibsPopup() {
+        if (penNibsPanelView != null) { dismissPanel(penNibsPanelView); penNibsPanelView = null; return }
+        dismissAll(); showPenNibsPopup()
+    }
 
-        val v = inflate(R.layout.popup_unified_container)
-        penOptionsPanelView = v
+    private fun showPenNibsPopup() {
+        val v = inflate(R.layout.popup_pen_nibs_container)
+        penNibsPanelView = v
 
-        val pager = v.findViewById<ViewPager2>(R.id.unified_pager)
-        val dot0  = v.findViewById<View>(R.id.unified_dot_0)
-        val dot1  = v.findViewById<View>(R.id.unified_dot_1)
+        val pager = v.findViewById<ViewPager2>(R.id.pen_nibs_pager)
+        val dot0  = v.findViewById<View>(R.id.pen_nibs_dot_0)
+        val dot1  = v.findViewById<View>(R.id.pen_nibs_dot_1)
 
-        val editing = PenEditingState(initialTool)
-        var page2Ref: View? = null
+        // لو الأداة الحالية مش من ضمن الريش الستة (زي Shape/Eraser)، نبدأ بالـ Pen كافتراضي
+        val startTool = if (drawingCanvas.currentTool in nibIconToTool.values) drawingCanvas.currentTool else DrawingTool.PEN
 
-        val adapter = PenOptionsPagerAdapter(
-            onPage1Ready = { page -> bindPenOptionsPage1(page, editing) { page2Ref } },
-            onPage2Ready = { page -> page2Ref = page; bindPenOptionsPage2(page, editing) }
+        var page1Ref: View? = null
+        val adapter = PenNibsPagerAdapter(
+            onPage1Ready = { page -> page1Ref = page; bindPenNibsPage1(page, startTool) },
+            onPage2Ready = { page -> bindPenNibsPage2(page, startTool) }
         )
         pager?.adapter = adapter
         pager?.offscreenPageLimit = 2
@@ -256,55 +125,65 @@ class PanelManager(
         addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON)
     }
 
-    private fun bindPenOptionsPage1(page: View, editing: PenEditingState, page2Provider: () -> View?) {
-        val state = toolStates.getOrPut(editing.tool) { service.appPreferences.getToolState(editing.tool) }
+    /** يحدد الحالة المرتفعة (Active Raised) للريشة المختارة + يحدث كل حاجة */
+    private fun bindPenNibsPage1(page: View, selectedTool: DrawingTool) {
+        page.findViewById<TextView>(R.id.tv_pen_nibs_title)?.text = selectedTool.displayName
 
-        page.findViewById<TextView>(R.id.tv_pen_options_title)?.text = editing.tool.displayName
+        val density = service.resources.displayMetrics.density
+        val raiseDistance = 10f * density
 
-        for ((t, id) in penTypeIconMap) {
-            page.findViewById<ImageView>(id)?.apply {
-                setBackgroundResource(if (t == editing.tool) R.drawable.bg_tool_item_selected else R.drawable.bg_tool_item_default)
-                setOnClickListener {
-                    editing.tool = t
-                    bindPenOptionsPage1(page, editing, page2Provider)
-                    page2Provider()?.let { p2 -> bindPenOptionsPage2(p2, editing) }
-                }
+        for ((iconId, tool) in nibIconToTool) {
+            val icon = page.findViewById<ImageView>(iconId) ?: continue
+            val isSelected = tool == selectedTool
+
+            // ✅ حالة الارتفاع — الريشة المختارة ترتفع للأعلى بـ Animation سلس
+            ObjectAnimator.ofFloat(icon, View.TRANSLATION_Y, icon.translationY, if (isSelected) -raiseDistance else 0f)
+                .apply { duration = 180L; start() }
+            icon.alpha = if (isSelected) 1f else 0.6f
+
+            icon.setOnClickListener {
+                drawingCanvas.switchTool(tool, currentStateFor(tool))
+                toolbarManager.updateColorDot(currentStateFor(tool).color)
+                toolbarManager.updateToolIcon(tool)
+                bindPenNibsPage1(page, tool) // إعادة الربط عشان يرتفع المختار الجديد وينزل القديم
             }
         }
 
+        // ✅ Slider الحجم بيتحكم في عرض الأداة الحالية فقط
         val widthLabel = page.findViewById<TextView>(R.id.label_pen_width_value)
         page.findViewById<SeekBar>(R.id.seek_pen_width)?.apply {
             setOnSeekBarChangeListener(null)
-            max = 95; progress = (state.strokeWidth - 5f).toInt().coerceIn(0, 95)
-            widthLabel?.text = "${state.strokeWidth.toInt()}px"
+            val st = currentStateFor(selectedTool)
+            max = 95; progress = (st.strokeWidth - 5f).toInt().coerceIn(0, 95)
+            widthLabel?.text = "${st.strokeWidth.toInt()}px"
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) {
                     val w = p + 5f
                     widthLabel?.text = "${w.toInt()}px"
+                    val state = currentStateFor(drawingCanvas.currentTool)
                     state.strokeWidth = w
-                    service.appPreferences.saveToolState(editing.tool, state)
-                    if (drawingCanvas.currentTool == editing.tool) drawingCanvas.currentStrokeWidth = w
+                    service.appPreferences.saveToolState(drawingCanvas.currentTool, state)
+                    if (drawingCanvas.currentTool != DrawingTool.LASER) drawingCanvas.currentStrokeWidth = w
                 }
                 override fun onStartTrackingTouch(s: SeekBar?) {}
                 override fun onStopTrackingTouch(s: SeekBar?) {}
             })
         }
 
-        val quickColorIds = listOf(
-            R.id.pen_color_01, R.id.pen_color_02, R.id.pen_color_03,
-            R.id.pen_color_04, R.id.pen_color_05, R.id.pen_color_06
-        )
+        // ✅ الألوان السريعة — بتطبق على كل الأقلام المشتركة مرة واحدة، عدا الهايلايتر بيطبق على نفسه بس
+        val quickColorIds = listOf(R.id.pen_color_01, R.id.pen_color_02, R.id.pen_color_03, R.id.pen_color_04, R.id.pen_color_05, R.id.pen_color_06)
         quickColorIds.forEach { id ->
             page.findViewById<View>(id)?.setOnClickListener {
                 val bg = it.background
                 val color = (bg as? android.graphics.drawable.ColorDrawable)?.color ?: Color.RED
-                applyColorToTool(editing.tool, color)
+                applySharedColor(color)
             }
         }
     }
 
-    private fun bindPenOptionsPage2(page: View, editing: PenEditingState) {
-        val state = toolStates.getOrPut(editing.tool) { service.appPreferences.getToolState(editing.tool) }
+    private fun bindPenNibsPage2(page: View, selectedTool: DrawingTool) {
+        val tool = drawingCanvas.currentTool.let { if (it in nibIconToTool.values) it else selectedTool }
+        val state = currentStateFor(tool)
 
         val picker     = page.findViewById<HsvColorPickerView>(R.id.hsv_picker)
         val tvHex      = page.findViewById<TextView>(R.id.tv_hex_value)
@@ -331,90 +210,85 @@ class PanelManager(
         }
 
         applyBtn?.setOnClickListener {
-            applyColorToTool(editing.tool, picker?.getSelectedColor() ?: state.color)
-            dismissPanel(penOptionsPanelView); penOptionsPanelView = null
+            val color = picker?.getSelectedColor() ?: state.color
+            applySharedColor(color)
+            dismissPanel(penNibsPanelView); penNibsPanelView = null
         }
     }
 
-    private fun applyColorToTool(tool: DrawingTool, color: Int) {
-        val state = toolStates.getOrPut(tool) { service.appPreferences.getToolState(tool) }
-        state.color = color
-        service.appPreferences.saveToolState(tool, state)
-        if (drawingCanvas.currentTool == tool) {
-            drawingCanvas.currentColor = color
-            toolbarManager.updateColorDot(color)
+    /** ✅ اللون بيتطبق على الأداة الحالية + يتبقى مشترك لكل الأقلام (عدا الهايلايتر المستقل) */
+    private fun applySharedColor(color: Int) {
+        val tool = drawingCanvas.currentTool
+        if (tool == DrawingTool.HIGHLIGHTER) {
+            service.appPreferences.highlighterColor = color
+        } else if (tool != DrawingTool.LASER) {
+            service.appPreferences.updateGlobalPenColor(color)
         }
+        drawingCanvas.currentColor = color
+        toolbarManager.updateColorDot(color)
+        toolStates[tool] = currentStateFor(tool).apply { this.color = color }
     }
 
-    // ─── Color Panel ────────────────────────────────────────────────────────
+    private fun currentStateFor(tool: DrawingTool): ToolState =
+        toolStates.getOrPut(tool) { service.appPreferences.getToolState(tool) }.also {
+            // تحديث اللون دايماً من المصدر المشترك عشان لو اتغير من أداة تانية
+            if (tool != DrawingTool.HIGHLIGHTER && tool != DrawingTool.LASER) it.color = service.appPreferences.globalPenColor
+            if (tool == DrawingTool.HIGHLIGHTER) it.color = service.appPreferences.highlighterColor
+        }
+
+    // ─── Color Panel (عام — برا الأقلام، بيستخدمه زرار اللون في الـ Toolbar) ──
 
     fun toggleColorPanel() {
-        if (colorPanelView != null) {
-            dismissPanel(colorPanelView); colorPanelView = null; return
-        }
+        if (colorPanelView != null) { dismissPanel(colorPanelView); colorPanelView = null; return }
         dismissAll(); showColorPanel()
     }
 
     private fun showColorPanel() {
         val v = inflate(R.layout.popup_unified_container)
         colorPanelView = v
-
         val pager = v.findViewById<ViewPager2>(R.id.unified_pager)
-        val dot0  = v.findViewById<View>(R.id.unified_dot_0)
-        val dot1  = v.findViewById<View>(R.id.unified_dot_1)
-
+        val dot0 = v.findViewById<View>(R.id.unified_dot_0); val dot1 = v.findViewById<View>(R.id.unified_dot_1)
         val adapter = ColorPagerAdapter(
             onPage1Ready = { page -> bindColorPage1(page) },
             onPage2Ready = { page -> bindColorPage2(page) }
         )
-        pager?.adapter = adapter
-        pager?.offscreenPageLimit = 2
-
+        pager?.adapter = adapter; pager?.offscreenPageLimit = 2
         pager?.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 dot0?.setBackgroundResource(if (position == 0) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
                 dot1?.setBackgroundResource(if (position == 1) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
             }
         })
-
         addPanel(v, anchorTo = PanelAnchor.COLOR_DOT)
     }
 
     private fun bindColorPage1(page: View) {
         page.findViewById<View>(R.id.view_current_color)?.setBackgroundColor(drawingCanvas.currentColor)
-
-        val swatchIds = listOf(
-            R.id.color_01, R.id.color_02, R.id.color_03, R.id.color_04, R.id.color_05, R.id.color_06,
+        val swatchIds = listOf(R.id.color_01, R.id.color_02, R.id.color_03, R.id.color_04, R.id.color_05, R.id.color_06,
             R.id.color_07, R.id.color_08, R.id.color_09, R.id.color_10, R.id.color_11, R.id.color_12,
-            R.id.color_16, R.id.color_17, R.id.color_18, R.id.color_19, R.id.color_20
-        )
-        val colorResIds = listOf(
-            R.color.preset_01, R.color.preset_02, R.color.preset_03, R.color.preset_04, R.color.preset_05, R.color.preset_06,
+            R.id.color_16, R.id.color_17, R.id.color_18, R.id.color_19, R.id.color_20)
+        val colorResIds = listOf(R.color.preset_01, R.color.preset_02, R.color.preset_03, R.color.preset_04, R.color.preset_05, R.color.preset_06,
             R.color.preset_07, R.color.preset_08, R.color.preset_09, R.color.preset_10, R.color.preset_11, R.color.preset_12,
-            R.color.preset_16, R.color.preset_17, R.color.preset_18, R.color.preset_19, R.color.preset_20
-        )
+            R.color.preset_16, R.color.preset_17, R.color.preset_18, R.color.preset_19, R.color.preset_20)
         swatchIds.forEachIndexed { i, id ->
             page.findViewById<View>(id)?.let { sw ->
                 val color = service.getColor(colorResIds[i])
                 sw.setBackgroundColor(color)
-                sw.setOnClickListener {
-                    applyColor(color)
-                    dismissPanel(colorPanelView); colorPanelView = null
-                }
+                sw.setOnClickListener { applySharedColor(color); dismissPanel(colorPanelView); colorPanelView = null }
             }
         }
 
-        val state      = currentState()
+        val state = currentStateFor(drawingCanvas.currentTool)
         val widthLabel = page.findViewById<TextView>(R.id.label_width_value)
         page.findViewById<SeekBar>(R.id.seek_width)?.apply {
             max = 95; progress = (state.strokeWidth - 5f).toInt().coerceIn(0, 95)
             widthLabel?.text = "${state.strokeWidth.toInt()}px"
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) {
-                    val w = p + 5f
-                    widthLabel?.text = "${w.toInt()}px"
+                    val w = p + 5f; widthLabel?.text = "${w.toInt()}px"
                     drawingCanvas.currentStrokeWidth = w
-                    currentState().strokeWidth = w; persistState()
+                    val st = currentStateFor(drawingCanvas.currentTool); st.strokeWidth = w
+                    service.appPreferences.saveToolState(drawingCanvas.currentTool, st)
                 }
                 override fun onStartTrackingTouch(s: SeekBar?) {}
                 override fun onStopTrackingTouch(s: SeekBar?) {}
@@ -428,10 +302,10 @@ class PanelManager(
             opacityLabel?.text = "$pct%"
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(s: SeekBar?, p: Int, f: Boolean) {
-                    val alpha = (p / 100f * 255).toInt()
-                    opacityLabel?.text = "$p%"
+                    val alpha = (p / 100f * 255).toInt(); opacityLabel?.text = "$p%"
                     drawingCanvas.currentOpacity = alpha
-                    currentState().opacity = alpha; persistState()
+                    val st = currentStateFor(drawingCanvas.currentTool); st.opacity = alpha
+                    service.appPreferences.saveToolState(drawingCanvas.currentTool, st)
                 }
                 override fun onStartTrackingTouch(s: SeekBar?) {}
                 override fun onStopTrackingTouch(s: SeekBar?) {}
@@ -440,10 +314,10 @@ class PanelManager(
     }
 
     private fun bindColorPage2(page: View) {
-        val picker     = page.findViewById<HsvColorPickerView>(R.id.hsv_picker)
-        val tvHex      = page.findViewById<TextView>(R.id.tv_hex_value)
+        val picker = page.findViewById<HsvColorPickerView>(R.id.hsv_picker)
+        val tvHex = page.findViewById<TextView>(R.id.tv_hex_value)
         val seekBright = page.findViewById<SeekBar>(R.id.seek_brightness)
-        val applyBtn   = page.findViewById<View>(R.id.btn_apply)
+        val applyBtn = page.findViewById<View>(R.id.btn_apply)
 
         picker?.setColor(drawingCanvas.currentColor)
         tvHex?.text = toHex(drawingCanvas.currentColor)
@@ -464,7 +338,7 @@ class PanelManager(
         }
 
         applyBtn?.setOnClickListener {
-            applyColor(picker?.getSelectedColor() ?: drawingCanvas.currentColor)
+            applySharedColor(picker?.getSelectedColor() ?: drawingCanvas.currentColor)
             dismissPanel(colorPanelView); colorPanelView = null
         }
     }
@@ -472,146 +346,71 @@ class PanelManager(
     // ─── Settings Panel ──────────────────────────────────────────────────────
 
     fun toggleSettingsPanel() {
-        if (settingsPanelView != null) {
-            dismissPanel(settingsPanelView); settingsPanelView = null; return
-        }
+        if (settingsPanelView != null) { dismissPanel(settingsPanelView); settingsPanelView = null; return }
         dismissAll(); showSettingsPanel()
     }
 
     private fun showSettingsPanel() {
         val v = inflate(R.layout.popup_unified_container)
         settingsPanelView = v
-
         val pager = v.findViewById<ViewPager2>(R.id.unified_pager)
-        val dot0  = v.findViewById<View>(R.id.unified_dot_0)
-        val dot1  = v.findViewById<View>(R.id.unified_dot_1)
-
-        val adapter = SettingsPagerAdapter(
-            onSettingsPageReady = { page -> bindSettingsPage(page) },
-            onAboutPageReady    = { }
-        )
-        pager?.adapter = adapter
-        pager?.offscreenPageLimit = 2
-
+        val dot0 = v.findViewById<View>(R.id.unified_dot_0); val dot1 = v.findViewById<View>(R.id.unified_dot_1)
+        val adapter = SettingsPagerAdapter(onSettingsPageReady = { page -> bindSettingsPage(page) }, onAboutPageReady = { })
+        pager?.adapter = adapter; pager?.offscreenPageLimit = 2
         pager?.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 dot0?.setBackgroundResource(if (position == 0) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
                 dot1?.setBackgroundResource(if (position == 1) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
             }
         })
-
         addPanel(v, anchorTo = PanelAnchor.SETTINGS_BUTTON)
     }
 
     private fun bindSettingsPage(page: View) {
         val prefs = service.appPreferences
-        val btnH  = page.findViewById<TextView>(R.id.btn_horizontal)
-        val btnV  = page.findViewById<TextView>(R.id.btn_vertical)
-
+        val btnH = page.findViewById<TextView>(R.id.btn_horizontal); val btnV = page.findViewById<TextView>(R.id.btn_vertical)
         fun refreshOrient(o: ToolbarOrientation) {
-            val sel = R.drawable.bg_setting_selected
-            val uns = R.drawable.bg_setting_unselected
-            val selT = service.getColor(R.color.setting_selected_text)
-            val unsT = service.getColor(R.color.setting_unselected_text)
-            if (o == ToolbarOrientation.HORIZONTAL) {
-                btnH?.setBackgroundResource(sel); btnH?.setTextColor(selT)
-                btnV?.setBackgroundResource(uns); btnV?.setTextColor(unsT)
-            } else {
-                btnV?.setBackgroundResource(sel); btnV?.setTextColor(selT)
-                btnH?.setBackgroundResource(uns); btnH?.setTextColor(unsT)
-            }
+            val sel = R.drawable.bg_setting_selected; val uns = R.drawable.bg_setting_unselected
+            val selT = service.getColor(R.color.setting_selected_text); val unsT = service.getColor(R.color.setting_unselected_text)
+            if (o == ToolbarOrientation.HORIZONTAL) { btnH?.setBackgroundResource(sel); btnH?.setTextColor(selT); btnV?.setBackgroundResource(uns); btnV?.setTextColor(unsT) }
+            else { btnV?.setBackgroundResource(sel); btnV?.setTextColor(selT); btnH?.setBackgroundResource(uns); btnH?.setTextColor(unsT) }
         }
         refreshOrient(prefs.toolbarOrientation)
-
-        btnH?.setOnClickListener {
-            service.applyOrientation(ToolbarOrientation.HORIZONTAL)
-            dismissPanel(settingsPanelView); settingsPanelView = null
-        }
-        btnV?.setOnClickListener {
-            service.applyOrientation(ToolbarOrientation.VERTICAL)
-            dismissPanel(settingsPanelView); settingsPanelView = null
-        }
-
-        page.findViewById<CheckBox>(R.id.chk_clear_on_hide)?.apply {
-            isChecked = prefs.clearOnHide
-            setOnCheckedChangeListener { _, c -> prefs.clearOnHide = c }
-        }
-        page.findViewById<CheckBox>(R.id.chk_open_on_start)?.apply {
-            isChecked = prefs.openOnStart
-            setOnCheckedChangeListener { _, c -> prefs.openOnStart = c }
-        }
-        page.findViewById<CheckBox>(R.id.chk_finger_drawing)?.apply {
-            isChecked = prefs.fingerDrawing
-            setOnCheckedChangeListener { _, c ->
-                prefs.fingerDrawing = c; service.refreshCanvasTouchMode()
-            }
-        }
-        page.findViewById<View>(R.id.btn_quit)?.setOnClickListener {
-            dismissAll(); service.stopSelf()
-        }
+        btnH?.setOnClickListener { service.applyOrientation(ToolbarOrientation.HORIZONTAL); dismissPanel(settingsPanelView); settingsPanelView = null }
+        btnV?.setOnClickListener { service.applyOrientation(ToolbarOrientation.VERTICAL); dismissPanel(settingsPanelView); settingsPanelView = null }
+        page.findViewById<CheckBox>(R.id.chk_clear_on_hide)?.apply { isChecked = prefs.clearOnHide; setOnCheckedChangeListener { _, c -> prefs.clearOnHide = c } }
+        page.findViewById<CheckBox>(R.id.chk_open_on_start)?.apply { isChecked = prefs.openOnStart; setOnCheckedChangeListener { _, c -> prefs.openOnStart = c } }
+        page.findViewById<CheckBox>(R.id.chk_finger_drawing)?.apply { isChecked = prefs.fingerDrawing; setOnCheckedChangeListener { _, c -> prefs.fingerDrawing = c; service.refreshCanvasTouchMode() } }
+        page.findViewById<View>(R.id.btn_quit)?.setOnClickListener { dismissAll(); service.stopSelf() }
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    private fun applyColor(color: Int) {
-        drawingCanvas.currentColor = color
-        currentState().color = color; persistState()
-        toolbarManager.updateColorDot(color)
-    }
-
-    private fun currentState(): ToolState =
-        toolStates.getOrPut(drawingCanvas.currentTool) {
-            service.appPreferences.getToolState(drawingCanvas.currentTool)
-        }
-
-    private fun persistState() {
-        val tool  = drawingCanvas.currentTool
-        val state = toolStates[tool] ?: return
-        service.appPreferences.saveToolState(tool, state)
-    }
-
     private fun toHex(color: Int): String = "#%06X".format(0xFFFFFF and color)
     private fun inflate(id: Int): View = LayoutInflater.from(service).inflate(id, null)
-
-    private fun addPanel(view: View, anchorTo: PanelAnchor) =
-        windowManager.addView(view, buildPanelParams(anchorTo))
-
-    private fun dismissPanel(view: View?) {
-        try { view?.let { windowManager.removeView(it) } } catch (_: Exception) { }
-    }
+    private fun addPanel(view: View, anchorTo: PanelAnchor) = windowManager.addView(view, buildPanelParams(anchorTo))
+    private fun dismissPanel(view: View?) { try { view?.let { windowManager.removeView(it) } } catch (_: Exception) { } }
 
     private enum class PanelAnchor { TOOLS_BUTTON, COLOR_DOT, SETTINGS_BUTTON }
 
     private fun buildPanelParams(anchorTo: PanelAnchor): WindowManager.LayoutParams {
         val isH = service.appPreferences.toolbarOrientation == ToolbarOrientation.HORIZONTAL
         val pxD = service.resources.displayMetrics.density
-        val px  = { dp: Int -> (dp * pxD).toInt() }
-
+        val px = { dp: Int -> (dp * pxD).toInt() }
         val baseX = px(30); val baseY = px(80)
-
         val (offsetX, offsetY) = when (anchorTo) {
-            PanelAnchor.TOOLS_BUTTON    -> if (isH) Pair(0, px(56))     else Pair(px(64), px(70))
-            PanelAnchor.COLOR_DOT       -> if (isH) Pair(0, px(56))     else Pair(px(58), px(170))
+            PanelAnchor.TOOLS_BUTTON    -> if (isH) Pair(0, px(56)) else Pair(px(64), px(70))
+            PanelAnchor.COLOR_DOT       -> if (isH) Pair(0, px(56)) else Pair(px(58), px(170))
             PanelAnchor.SETTINGS_BUTTON -> if (isH) Pair(px(-70), px(56)) else Pair(px(58), px(260))
         }
-
         return WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            overlayType(),
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                    or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
-                    or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT, overlayType(),
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = baseX + offsetX
-            y = baseY + offsetY
-        }
+        ).apply { gravity = Gravity.TOP or Gravity.START; x = baseX + offsetX; y = baseY + offsetY }
     }
 
     private fun overlayType(): Int =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         else @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
 }
