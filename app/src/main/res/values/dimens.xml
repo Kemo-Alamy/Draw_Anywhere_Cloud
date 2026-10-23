@@ -5,9 +5,9 @@
     <dimen name="popup_unified_radius">18dp</dimen>
     <dimen name="popup_dots_row_height">24dp</dimen>
 
-    <!-- ✅ قائمة الأشكال (Rectangle/Ellipse/Eraser/Lasso) — ضيقة زي حجم أيقونة Settings -->
+    <!-- ✅ القائمة الأساسية (Click عادي) — عرض مضغوط يطابق حجم أيقونة Settings -->
     <dimen name="popup_tools_list_width">150dp</dimen>
 
-    <!-- ✅ بوب أب الأقلام الجرافيكية — عرض أوسع شوية يسع الريش الستة -->
+    <!-- ✅ بوب أب الريش المتقدم (Long-Press 3 ثواني) -->
     <dimen name="popup_pen_nibs_width">250dp</dimen>
 </resources>
