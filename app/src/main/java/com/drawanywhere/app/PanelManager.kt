@@ -8,6 +8,7 @@ import android.os.Looper
 import android.view.*
 import android.widget.*
 import androidx.viewpager2.widget.ViewPager2
+import kotlin.math.abs
 
 private class PenEditingState(var tool: DrawingTool)
 
@@ -25,11 +26,6 @@ class PanelManager(
 
     private val toolStates = mutableMapOf<DrawingTool, ToolState>()
 
-    private val penLongPressHandler = Handler(Looper.getMainLooper())
-    private val PEN_LONG_PRESS_MS = 3000L
-    private val touchSlop: Int by lazy { ViewConfiguration.get(service).scaledTouchSlop }
-
-    // ✅ مرجع مباشر للـ ViewPager2 بتاع قائمة الأدوات عشان نقدر نعطّله/نفعّله وقت الـ Long-Press
     private var toolsPagerRef: ViewPager2? = null
 
     private val penTypeIconMap = mapOf(
@@ -55,7 +51,6 @@ class PanelManager(
     // ─── Dismiss ─────────────────────────────────────────────────────────────
 
     fun dismissAll() {
-        penLongPressHandler.removeCallbacksAndMessages(null)
         toolsPagerRef = null
         listOf(colorPanelView, toolsPanelView, settingsPanelView, penOptionsPanelView)
             .forEach { dismissPanel(it) }
@@ -135,17 +130,20 @@ class PanelManager(
     }
 
     /**
-     * ✅ الحل الجذري النهائي:
-     * بمجرد ما الإصبع ينزل على أي زرار قلم، بنعطّل ViewPager2 بالكامل فوراً
-     * (isUserInputEnabled = false) فما بيقدرش ياخد اللمسة أو يقاطعها خالص
-     * وبنرجعه يشتغل تاني أول ما الإصبع يترفع (سواء فتح Popup أو عادي)
+     * ✅ الحل النهائي من تحليل Copilot:
+     * - الـ Runnable متربوط بالـ View نفسها (postDelayed/removeCallbacks) بدل Handler منفصل
+     * - requestDisallowInterceptTouchEvent بيتوجه لكل من الأب المباشر وللـ ViewPager2 نفسه معاً
+     * - مفيش OnClickListener متضارب على نفس الزرار — الـ Touch هو المتحكم الوحيد في كل حاجة
      */
     private fun attachPenLongPress(btn: TextView, tool: DrawingTool) {
+        val touchSlop = ViewConfiguration.get(service).scaledTouchSlop
+        var pressDownX = 0f
+        var pressDownY = 0f
+        var longPressArmed = false
         var longPressFired = false
-        var downX = 0f
-        var downY = 0f
 
-        val fireRunnable = Runnable {
+        val longPressRunnable = Runnable {
+            if (!longPressArmed || longPressFired) return@Runnable
             longPressFired = true
             btn.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
             showPenOptionsPopup(tool)
@@ -154,49 +152,66 @@ class PanelManager(
         btn.setOnTouchListener { v, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    longPressArmed = true
                     longPressFired = false
-                    downX = event.rawX
-                    downY = event.rawY
+                    pressDownX = event.rawX
+                    pressDownY = event.rawY
 
-                    // ✅ تعطيل الـ Pager بالكامل فور لمس الزرار
-                    toolsPagerRef?.isUserInputEnabled = false
                     v.parent?.requestDisallowInterceptTouchEvent(true)
+                    toolsPagerRef?.requestDisallowInterceptTouchEvent(true)
+                    toolsPagerRef?.isUserInputEnabled = false
 
-                    penLongPressHandler.removeCallbacks(fireRunnable)
-                    penLongPressHandler.postDelayed(fireRunnable, PEN_LONG_PRESS_MS)
+                    v.postDelayed(longPressRunnable, 3000L)
                     true
                 }
+
                 MotionEvent.ACTION_MOVE -> {
-                    val dx = Math.abs(event.rawX - downX)
-                    val dy = Math.abs(event.rawY - downY)
-                    if (dx > touchSlop * 4 || dy > touchSlop * 4) {
-                        // حركة كبيرة فعلاً → إلغاء الـ Long-Press ورجوع الـ Pager يشتغل
-                        penLongPressHandler.removeCallbacks(fireRunnable)
+                    if (!longPressArmed) return@setOnTouchListener false
+
+                    val dx = abs(event.rawX - pressDownX)
+                    val dy = abs(event.rawY - pressDownY)
+                    val movedTooFar = dx > touchSlop * 3 || dy > touchSlop * 3
+
+                    if (movedTooFar) {
+                        longPressArmed = false
+                        v.removeCallbacks(longPressRunnable)
                         toolsPagerRef?.isUserInputEnabled = true
                         v.parent?.requestDisallowInterceptTouchEvent(false)
+                        toolsPagerRef?.requestDisallowInterceptTouchEvent(false)
                     }
                     true
                 }
+
                 MotionEvent.ACTION_UP -> {
-                    penLongPressHandler.removeCallbacks(fireRunnable)
-                    toolsPagerRef?.isUserInputEnabled = true
-                    v.parent?.requestDisallowInterceptTouchEvent(false)
-                    if (!longPressFired) {
+                    v.removeCallbacks(longPressRunnable)
+
+                    if (!longPressFired && longPressArmed) {
                         v.performClick()
                         selectTool(tool)
                     }
-                    true
-                }
-                MotionEvent.ACTION_CANCEL -> {
-                    penLongPressHandler.removeCallbacks(fireRunnable)
+
+                    longPressArmed = false
+                    longPressFired = false
                     toolsPagerRef?.isUserInputEnabled = true
                     v.parent?.requestDisallowInterceptTouchEvent(false)
+                    toolsPagerRef?.requestDisallowInterceptTouchEvent(false)
                     true
                 }
+
+                MotionEvent.ACTION_CANCEL -> {
+                    v.removeCallbacks(longPressRunnable)
+                    longPressArmed = false
+                    longPressFired = false
+                    toolsPagerRef?.isUserInputEnabled = true
+                    v.parent?.requestDisallowInterceptTouchEvent(false)
+                    toolsPagerRef?.requestDisallowInterceptTouchEvent(false)
+                    true
+                }
+
                 else -> false
             }
         }
-        btn.setOnClickListener { /* كل التحكم من OnTouchListener فوق */ }
+        btn.setOnClickListener(null)
     }
 
     private fun selectTool(tool: DrawingTool) {
