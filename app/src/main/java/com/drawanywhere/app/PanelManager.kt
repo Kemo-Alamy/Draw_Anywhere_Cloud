@@ -22,6 +22,12 @@ class PanelManager(
     private var settingsPanelView: View? = null
     private var penNibsPanelView:  View? = null
 
+    // ✅ حالة صريحة لكل Popup — ده اللي بيضمن إن الضغطة التانية تقفل فعلياً
+    private var isToolsOpen    = false
+    private var isColorOpen    = false
+    private var isSettingsOpen = false
+    private var isPenNibsOpen  = false
+
     private val toolStates = mutableMapOf<DrawingTool, ToolState>()
 
     private val nibIconToTool = mapOf(
@@ -40,18 +46,23 @@ class PanelManager(
     fun dismissAll() {
         listOf(colorPanelView, toolsPanelView, settingsPanelView, penNibsPanelView).forEach { dismissPanel(it) }
         colorPanelView = null; toolsPanelView = null; settingsPanelView = null; penNibsPanelView = null
+        isToolsOpen = false; isColorOpen = false; isSettingsOpen = false; isPenNibsOpen = false
     }
 
     // ─── القائمة الأساسية (Click عادي) ─────────────────────────────────────────
 
     fun toggleToolsPanel() {
-        if (toolsPanelView != null) { dismissPanel(toolsPanelView); toolsPanelView = null; return }
+        if (isToolsOpen) {
+            dismissPanel(toolsPanelView); toolsPanelView = null; isToolsOpen = false
+            return
+        }
         dismissAll(); showToolsPanel()
     }
 
     private fun showToolsPanel() {
         val v = inflate(R.layout.popup_tools_list_container)
         toolsPanelView = v
+        isToolsOpen = true
         val pager = v.findViewById<ViewPager2>(R.id.tools_pager)
         val dot0 = v.findViewById<View>(R.id.tools_dot_0); val dot1 = v.findViewById<View>(R.id.tools_dot_1)
         val adapter = ToolsListPagerAdapter(
@@ -65,7 +76,9 @@ class PanelManager(
                 dot1?.setBackgroundResource(if (position == 1) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
             }
         })
-        addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON) { dismissPanel(toolsPanelView); toolsPanelView = null }
+        addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON) {
+            dismissPanel(toolsPanelView); toolsPanelView = null; isToolsOpen = false
+        }
     }
 
     private fun bindToolsListPage(page: View) {
@@ -95,19 +108,23 @@ class PanelManager(
         drawingCanvas.switchTool(tool, currentStateFor(tool))
         toolbarManager.updateColorDot(currentStateFor(tool).color)
         toolbarManager.updateToolIcon(tool)
-        dismissPanel(toolsPanelView); toolsPanelView = null
+        dismissPanel(toolsPanelView); toolsPanelView = null; isToolsOpen = false
     }
 
     // ─── Pen Nibs Popup (Long-Press 3 ثواني) ──────────────────────────────────
 
     fun togglePenNibsPopup() {
-        if (penNibsPanelView != null) { dismissPanel(penNibsPanelView); penNibsPanelView = null; return }
+        if (isPenNibsOpen) {
+            dismissPanel(penNibsPanelView); penNibsPanelView = null; isPenNibsOpen = false
+            return
+        }
         dismissAll(); showPenNibsPopup()
     }
 
     private fun showPenNibsPopup() {
         val v = inflate(R.layout.popup_pen_nibs_container)
         penNibsPanelView = v
+        isPenNibsOpen = true
 
         val pager = v.findViewById<ViewPager2>(R.id.pen_nibs_pager)
         val dot0  = v.findViewById<View>(R.id.pen_nibs_dot_0)
@@ -129,7 +146,9 @@ class PanelManager(
             }
         })
 
-        addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON) { dismissPanel(penNibsPanelView); penNibsPanelView = null }
+        addPanel(v, anchorTo = PanelAnchor.TOOLS_BUTTON) {
+            dismissPanel(penNibsPanelView); penNibsPanelView = null; isPenNibsOpen = false
+        }
     }
 
     private fun bindPenNibsPage1(page: View, selectedTool: DrawingTool) {
@@ -215,7 +234,7 @@ class PanelManager(
         applyBtn?.setOnClickListener {
             val color = picker?.getSelectedColor() ?: state.color
             applySharedColor(color)
-            dismissPanel(penNibsPanelView); penNibsPanelView = null
+            dismissPanel(penNibsPanelView); penNibsPanelView = null; isPenNibsOpen = false
         }
     }
 
@@ -240,13 +259,17 @@ class PanelManager(
     // ─── Color Panel ────────────────────────────────────────────────────────
 
     fun toggleColorPanel() {
-        if (colorPanelView != null) { dismissPanel(colorPanelView); colorPanelView = null; return }
+        if (isColorOpen) {
+            dismissPanel(colorPanelView); colorPanelView = null; isColorOpen = false
+            return
+        }
         dismissAll(); showColorPanel()
     }
 
     private fun showColorPanel() {
         val v = inflate(R.layout.popup_unified_container)
         colorPanelView = v
+        isColorOpen = true
         val pager = v.findViewById<ViewPager2>(R.id.unified_pager)
         val dot0 = v.findViewById<View>(R.id.unified_dot_0); val dot1 = v.findViewById<View>(R.id.unified_dot_1)
         val adapter = ColorPagerAdapter(
@@ -260,7 +283,9 @@ class PanelManager(
                 dot1?.setBackgroundResource(if (position == 1) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
             }
         })
-        addPanel(v, anchorTo = PanelAnchor.COLOR_DOT) { dismissPanel(colorPanelView); colorPanelView = null }
+        addPanel(v, anchorTo = PanelAnchor.COLOR_DOT) {
+            dismissPanel(colorPanelView); colorPanelView = null; isColorOpen = false
+        }
     }
 
     private fun bindColorPage1(page: View) {
@@ -275,7 +300,7 @@ class PanelManager(
             page.findViewById<View>(id)?.let { sw ->
                 val color = service.getColor(colorResIds[i])
                 sw.setBackgroundColor(color)
-                sw.setOnClickListener { applySharedColor(color); dismissPanel(colorPanelView); colorPanelView = null }
+                sw.setOnClickListener { applySharedColor(color); dismissPanel(colorPanelView); colorPanelView = null; isColorOpen = false }
             }
         }
 
@@ -340,20 +365,24 @@ class PanelManager(
 
         applyBtn?.setOnClickListener {
             applySharedColor(picker?.getSelectedColor() ?: drawingCanvas.currentColor)
-            dismissPanel(colorPanelView); colorPanelView = null
+            dismissPanel(colorPanelView); colorPanelView = null; isColorOpen = false
         }
     }
 
     // ─── Settings Panel ──────────────────────────────────────────────────────
 
     fun toggleSettingsPanel() {
-        if (settingsPanelView != null) { dismissPanel(settingsPanelView); settingsPanelView = null; return }
+        if (isSettingsOpen) {
+            dismissPanel(settingsPanelView); settingsPanelView = null; isSettingsOpen = false
+            return
+        }
         dismissAll(); showSettingsPanel()
     }
 
     private fun showSettingsPanel() {
         val v = inflate(R.layout.popup_unified_container)
         settingsPanelView = v
+        isSettingsOpen = true
         val pager = v.findViewById<ViewPager2>(R.id.unified_pager)
         val dot0 = v.findViewById<View>(R.id.unified_dot_0); val dot1 = v.findViewById<View>(R.id.unified_dot_1)
         val adapter = SettingsPagerAdapter(onSettingsPageReady = { page -> bindSettingsPage(page) }, onAboutPageReady = { })
@@ -364,7 +393,9 @@ class PanelManager(
                 dot1?.setBackgroundResource(if (position == 1) R.drawable.bg_dot_active else R.drawable.bg_dot_inactive)
             }
         })
-        addPanel(v, anchorTo = PanelAnchor.SETTINGS_BUTTON) { dismissPanel(settingsPanelView); settingsPanelView = null }
+        addPanel(v, anchorTo = PanelAnchor.SETTINGS_BUTTON) {
+            dismissPanel(settingsPanelView); settingsPanelView = null; isSettingsOpen = false
+        }
     }
 
     private fun bindSettingsPage(page: View) {
@@ -377,20 +408,18 @@ class PanelManager(
             else { btnV?.setBackgroundResource(sel); btnV?.setTextColor(selT); btnH?.setBackgroundResource(uns); btnH?.setTextColor(unsT) }
         }
         refreshOrient(prefs.toolbarOrientation)
-        btnH?.setOnClickListener { service.applyOrientation(ToolbarOrientation.HORIZONTAL); dismissPanel(settingsPanelView); settingsPanelView = null }
-        btnV?.setOnClickListener { service.applyOrientation(ToolbarOrientation.VERTICAL); dismissPanel(settingsPanelView); settingsPanelView = null }
+        btnH?.setOnClickListener { service.applyOrientation(ToolbarOrientation.HORIZONTAL); dismissPanel(settingsPanelView); settingsPanelView = null; isSettingsOpen = false }
+        btnV?.setOnClickListener { service.applyOrientation(ToolbarOrientation.VERTICAL); dismissPanel(settingsPanelView); settingsPanelView = null; isSettingsOpen = false }
         page.findViewById<CheckBox>(R.id.chk_clear_on_hide)?.apply { isChecked = prefs.clearOnHide; setOnCheckedChangeListener { _, c -> prefs.clearOnHide = c } }
         page.findViewById<CheckBox>(R.id.chk_open_on_start)?.apply { isChecked = prefs.openOnStart; setOnCheckedChangeListener { _, c -> prefs.openOnStart = c } }
         page.findViewById<CheckBox>(R.id.chk_finger_drawing)?.apply { isChecked = prefs.fingerDrawing; setOnCheckedChangeListener { _, c -> prefs.fingerDrawing = c; service.refreshCanvasTouchMode() } }
         page.findViewById<View>(R.id.btn_quit)?.setOnClickListener { dismissAll(); service.stopSelf() }
 
-        // ✅ زرار Contact With developer — بيفتح واتساب على الرقم المحدد
         page.findViewById<View>(R.id.btn_contact_developer)?.setOnClickListener {
             openWhatsAppChat("201115168017")
         }
     }
 
-    /** يفتح محادثة واتساب مباشرة مع الرقم المحدد (بصيغة دولية بدون +) */
     private fun openWhatsAppChat(phoneWithCountryCode: String) {
         try {
             val uri = Uri.parse("https://wa.me/$phoneWithCountryCode")
@@ -408,16 +437,16 @@ class PanelManager(
     private fun inflate(id: Int): View = LayoutInflater.from(service).inflate(id, null)
 
     /**
-     * ✅ كل Popup بقى بيتبني جوه FrameLayout Wrapper شفاف
-     * لمسة برا حدود الـ Popup → يستدعي onOutsideTouch ويقفل الـ Popup
-     * (مش بيوصل اللمسة للـ Canvas خلفه → مفيش رسم غلط بالخطأ)
+     * ✅ أهم تعديل: لما اللمسة برا الـ Popup، بنستهلكها فوراً (true)، نقفل الـ Popup،
+     * وكمان بنعلّم DrawingCanvas إنه يتجاهل أول لمسة قادمة (suppressNextTouchGesture)
+     * عشان نفس اللمسة اللي قفلت النافذة متترجمش كمان لخط مرسوم بالغلط على الكانفاس.
      */
     private fun addPanel(view: View, anchorTo: PanelAnchor, onOutsideTouch: () -> Unit) {
         val params = buildPanelParams(anchorTo)
         windowManager.addView(view, params)
         view.setOnTouchListener { _, event ->
-            // نسيب لمسات جوه الـ View الفعلي تمر عادي للأزرار الداخلية
             if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                if (::drawingCanvas.isInitialized) drawingCanvas.suppressNextTouchGesture()
                 onOutsideTouch()
                 true
             } else false
@@ -442,7 +471,6 @@ class PanelManager(
         }
         return WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT, overlayType(),
-            // ✅ FLAG_WATCH_OUTSIDE_TOUCH بيخلي النظام يرسل ACTION_OUTSIDE لما المستخدم يدوس برا الـ Popup
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                     or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
                     or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
