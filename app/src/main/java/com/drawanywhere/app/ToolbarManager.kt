@@ -137,7 +137,6 @@ class ToolbarManager(
             service.launchImagePicker()
         }
 
-        // ✅ أيقونة القلم: Click عادي = القائمة الأساسية | Long-Press 3 ثواني = Popup الريش المتقدم
         attachToolsButtonGestures(view)
 
         view.findViewById<View>(R.id.view_color_dot)?.setOnClickListener {
@@ -157,10 +156,10 @@ class ToolbarManager(
     }
 
     /**
-     * ✅ منطق Click/Long-Press على أيقونة القلم نفسها في الـ Toolbar:
-     * - رفع الإصبع قبل 3 ثواني → toggleToolsPanel() (القائمة الأساسية)
-     * - استمرار الضغط 3 ثواني → togglePenNibsPopup() (البوب أب المتقدم)
-     * نفس منطق PanelManager.attachPenLongPress المُثبت، لكن هنا على زرار الـ Toolbar الرئيسي
+     * ✅ الإصلاح الحقيقي:
+     * الزرار دلوقتي بيستدعي panelManager.togglePenNibsPopup()/toggleToolsPanel()
+     * واللي جواهم بقى بيتأكد فعلياً من isPenNibsPopupOpen()/isToolsPanelOpen()
+     * قبل ما يقرر يفتح أو يقفل — مش بس يعتمد على متغير محلي هنا كان بيتصفر غلط
      */
     private fun attachToolsButtonGestures(view: View) {
         val btn = view.findViewById<View>(R.id.btn_tools) ?: return
