@@ -34,10 +34,13 @@ class DrawingCanvas(context: Context) : View(context) {
 
     private val rawPoints = mutableListOf<PointF>()
 
-    // ✅ مؤشر الممحاة — بيتحدث وقت اللمس ويترسم فوق كل حاجة
     private var eraserCursorX: Float = -1000f
     private var eraserCursorY: Float = -1000f
     private var showEraserCursor: Boolean = false
+
+    // ✅ جديد — لما true، أول ACTION_DOWN جاية (وكل اللي بعدها لحد ACTION_UP)
+    // بيتم تجاهلها بالكامل من منطق الرسم، فمفيش Stroke بيتسجل غلط
+    private var suppressCurrentGesture: Boolean = false
 
     private var offBmp: Bitmap? = null
     private var offCvs: Canvas? = null
@@ -64,7 +67,6 @@ class DrawingCanvas(context: Context) : View(context) {
     }
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
 
-    // ✅ Paints خاصة بمؤشر الممحاة: دايرة بيضاء معبّأة + حافة سوداء رفيعة احترافية
     private val eraserCursorFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
         color = Color.WHITE
@@ -82,7 +84,15 @@ class DrawingCanvas(context: Context) : View(context) {
 
     init { setLayerType(LAYER_TYPE_SOFTWARE, null) }
 
-    // ─── Public API ────────────────────────────────────────────────────────[...]
+    // ─── Public API ───────────────────────────────────────────────────────────
+
+    /** ✅ يُستدعى من PanelManager لحظة إغلاق أي Popup بلمسة خارجية — يمنع الرسم في نفس اللمسة دي */
+    fun suppressNextTouchGesture() {
+        suppressCurrentGesture = true
+        activePath = null
+        showEraserCursor = false
+        invalidate()
+    }
 
     fun applyToolState(tool: DrawingTool, state: ToolState) {
         if (tool == currentTool) {
@@ -134,7 +144,7 @@ class DrawingCanvas(context: Context) : View(context) {
         for (s in strokes) commitStroke(cvs, s)
     }
 
-    // ─── Commit ─────────────────────────────────────────────────────────[...]
+    // ─── Commit ───────────────────────────────────────────────────────────────
 
     private fun commitStroke(cvs: Canvas, s: StrokeData) {
         when (s.tool) {
@@ -208,13 +218,7 @@ class DrawingCanvas(context: Context) : View(context) {
         cvs.drawPath(path, strokePaint)
     }
 
-    /**
-     * ✅ قلم رصاص حقيقي — خط أساسي ناعم موحّد (زي باقي الأقلام) + Texture خفيف جداً
-     * بدل الدوائر المتناثرة العشوائية (الترتر) القديمة. الإحساس دلوقتي خط رصاص حقيقي
-     * بحبيبات ناعمة جداً تقريباً مش ملحوظة إلا عند التكبير، مش نقط متباعدة واضحة.
-     */
     private fun drawRealPencil(cvs: Canvas, s: StrokeData) {
-        // ① الخط الأساسي — ناعم وموحّد زي باقي الأقلام
         strokePaint.apply {
             color = s.color; alpha = (s.opacity * 0.88f).toInt(); strokeWidth = s.strokeWidth
             xfermode = null; maskFilter = null
@@ -222,8 +226,6 @@ class DrawingCanvas(context: Context) : View(context) {
         }
         cvs.drawPath(s.path, strokePaint)
 
-        // ② Texture خفيف جداً فوق الخط — حبيبات دقيقة وشفافة بتضيف ملمت الرصاص
-        // بدون ما تكسر استمرارية الخط زي الترتر القديم
         val pts = s.rawPoints ?: return
         if (pts.size < 2) return
         val rnd = Random(s.timestamp)
@@ -262,7 +264,7 @@ class DrawingCanvas(context: Context) : View(context) {
         }
     }
 
-    // ─── onDraw ─────────────────────────────────────────────────────────[...]
+    // ─── onDraw ───────────────────────────────────────────────────────────────
 
     override fun onDraw(canvas: Canvas) {
         for (img in imageOverlays) {
@@ -309,15 +311,6 @@ class DrawingCanvas(context: Context) : View(context) {
                 }
                 DrawingTool.PIXEL_ERASER -> { eraserPaint.strokeWidth = currentStrokeWidth; canvas.drawPath(path, eraserPaint) }
                 DrawingTool.STROKE_ERASER -> {}
-                DrawingTool.LASER -> {
-                    strokePaint.apply {
-                        color = LASER_COLOR; alpha = 255; strokeWidth = currentStrokeWidth
-                        xfermode = null; maskFilter = BlurMaskFilter(currentStrokeWidth * 0.5f, BlurMaskFilter.Blur.SOLID)
-                        pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE
-                    }
-                    canvas.drawPath(path, strokePaint)
-                    strokePaint.maskFilter = null
-                }
                 DrawingTool.PEN -> {
                     val live = StrokeData(DrawingTool.PEN, path, currentColor, currentStrokeWidth, currentOpacity, currentLineStyle)
                     drawFinePen(canvas, path, live)
@@ -338,6 +331,7 @@ class DrawingCanvas(context: Context) : View(context) {
                     val live = StrokeData(DrawingTool.HIGHLIGHTER, path, currentColor, currentStrokeWidth, currentOpacity)
                     drawHighlighter(canvas, path, live)
                 }
+                DrawingTool.LASER -> { /* الـ Laser ليها معالجة منفصلة فوق، مفيش Preview هنا */ }
                 DrawingTool.LASSO -> {
                     strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
                         xfermode = null; maskFilter = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
@@ -348,7 +342,7 @@ class DrawingCanvas(context: Context) : View(context) {
             }
         }
 
-        // ✅ مؤشر الممحاة — بيترسم فوق كل حاجة، بس وقت استخدام أي ممحاة واللمس شغال فعلياً
+        // ✅ مؤشر الممحاة — بيتابع eraserCursorX/Y اللي بقى بيتحدث دايماً في onTouchEvent الموحّد
         if (showEraserCursor && (currentTool == DrawingTool.STROKE_ERASER || currentTool == DrawingTool.PIXEL_ERASER)) {
             val radius = currentStrokeWidth / 2f
             canvas.drawCircle(eraserCursorX, eraserCursorY, radius, eraserCursorFillPaint)
@@ -357,18 +351,43 @@ class DrawingCanvas(context: Context) : View(context) {
         }
     }
 
-    // ─── Touch ─────────────────────────────────────────────────────────�[...]
+    // ─── Touch ────────────────────────────────────────────────────────────────
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (!fingerDrawingEnabled) return false
+
+        // ✅ أول نقطة فحص — لو اللمسة دي متعلّمة إنها Suppressed (من إغلاق Popup)
+        // منستهلكهاش هنا أصلاً، نسيبها تمر عادي (false) لكن من غير أي أثر على الرسم،
+        // ونفضل كده لحد ما تنتهي اللمسة بالكامل (ACTION_UP/CANCEL) فنرجع نسمح للي بعدها
+        if (suppressCurrentGesture) {
+            if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                suppressCurrentGesture = false
+            }
+            return true
+        }
+
         if (imageOverlays.isNotEmpty() && imageController.onTouchEvent(event, imageOverlays)) return true
 
         val x = event.x; val y = event.y
+
+        // ✅ توحيد تحديث مؤشر الممحاة هنا في المدخل الموحّد — قبل أي فرع تاني
+        // كده الاتنين (Stroke Eraser و Pixel Eraser) بياخدوا نفس التحديث بالظبط
+        // في كل إشارة لمس، فمفيش مسار بيفوّته
+        if (currentTool == DrawingTool.STROKE_ERASER || currentTool == DrawingTool.PIXEL_ERASER) {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                    eraserCursorX = x; eraserCursorY = y; showEraserCursor = true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> showEraserCursor = false
+            }
+        }
+
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> touchDown(x, y)
             MotionEvent.ACTION_MOVE -> touchMove(x, y)
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> touchUp(x, y)
         }
+        invalidate()
         return true
     }
 
@@ -376,35 +395,20 @@ class DrawingCanvas(context: Context) : View(context) {
         prevX = x; prevY = y
         rawPoints.clear(); rawPoints.add(PointF(x, y))
         when (currentTool) {
-            DrawingTool.STROKE_ERASER -> {
-                showEraserCursor = true; eraserCursorX = x; eraserCursorY = y
-                eraseStrokeAt(x, y)
-            }
-            DrawingTool.PIXEL_ERASER -> {
-                showEraserCursor = true; eraserCursorX = x; eraserCursorY = y
-                activePath = Path().apply { moveTo(x, y) }
-            }
+            DrawingTool.STROKE_ERASER -> eraseStrokeAt(x, y)
+            DrawingTool.PIXEL_ERASER  -> activePath = Path().apply { moveTo(x, y) }
             DrawingTool.RECTANGLE, DrawingTool.ELLIPSE -> {
                 shapeStartX = x; shapeStartY = y; shapePreviewRect.set(x, y, x, y); activePath = Path()
-            }
-            DrawingTool.LASER -> {
-                activePath = Path().apply { moveTo(x, y) }
             }
             DrawingTool.LASSO -> { lassoStartX = x; lassoStartY = y; activePath = Path().apply { moveTo(x, y) } }
             else -> activePath = Path().apply { moveTo(x, y) }
         }
-        invalidate()
     }
 
     private fun touchMove(x: Float, y: Float) {
         when (currentTool) {
-            DrawingTool.STROKE_ERASER -> {
-                eraserCursorX = x; eraserCursorY = y
-                eraseStrokeAt(x, y)
-                return
-            }
+            DrawingTool.STROKE_ERASER -> eraseStrokeAt(x, y)
             DrawingTool.PIXEL_ERASER -> {
-                eraserCursorX = x; eraserCursorY = y
                 val p = activePath ?: return
                 val midX = (prevX + x) / 2f; val midY = (prevY + y) / 2f
                 p.quadTo(prevX, prevY, midX, midY)
@@ -412,13 +416,6 @@ class DrawingCanvas(context: Context) : View(context) {
             }
             DrawingTool.RECTANGLE, DrawingTool.ELLIPSE ->
                 shapePreviewRect.set(min(shapeStartX, x), min(shapeStartY, y), max(shapeStartX, x), max(shapeStartY, y))
-            DrawingTool.LASER -> {
-                val p = activePath ?: return
-                val midX = (prevX + x) / 2f; val midY = (prevY + y) / 2f
-                p.quadTo(prevX, prevY, midX, midY)
-                rawPoints.add(PointF(x, y))
-                prevX = x; prevY = y
-            }
             else -> {
                 val p = activePath ?: return
                 val midX = (prevX + x) / 2f; val midY = (prevY + y) / 2f
@@ -427,17 +424,13 @@ class DrawingCanvas(context: Context) : View(context) {
                 prevX = x; prevY = y
             }
         }
-        invalidate()
     }
 
     private fun touchUp(x: Float, y: Float) {
         val path = activePath
         when (currentTool) {
-            DrawingTool.STROKE_ERASER -> {
-                showEraserCursor = false
-            }
+            DrawingTool.STROKE_ERASER -> {}
             DrawingTool.PIXEL_ERASER -> {
-                showEraserCursor = false
                 if (path != null) {
                     path.lineTo(x, y)
                     val s = StrokeData(DrawingTool.PIXEL_ERASER, path, currentColor, currentStrokeWidth, currentOpacity)
@@ -479,7 +472,7 @@ class DrawingCanvas(context: Context) : View(context) {
                 }
             }
         }
-        activePath = null; rawPoints.clear(); invalidate()
+        activePath = null; rawPoints.clear()
     }
 
     private fun eraseStrokeAt(x: Float, y: Float) {
@@ -490,7 +483,7 @@ class DrawingCanvas(context: Context) : View(context) {
             b.inset(-40f, -40f)
             if (b.contains(x, y)) { iter.remove(); changed = true }
         }
-        if (changed) { rebuildOffscreen(); invalidate(); onContentChanged?.invoke(hasContent()) }
+        if (changed) { rebuildOffscreen(); onContentChanged?.invoke(hasContent()) }
     }
 
     private fun scheduleLaserFade(stroke: StrokeData) {
