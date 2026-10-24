@@ -32,8 +32,12 @@ class DrawingCanvas(context: Context) : View(context) {
     private var prevX            = 0f
     private var prevY            = 0f
 
-    // نقاط الـ path الخام — بنحتاجها عشان نرسم Calligraphy متدرج وBrush محبب
     private val rawPoints = mutableListOf<PointF>()
+
+    // ✅ مؤشر الممحاة — بيتحدث وقت اللمس ويترسم فوق كل حاجة
+    private var eraserCursorX: Float = -1000f
+    private var eraserCursorY: Float = -1000f
+    private var showEraserCursor: Boolean = false
 
     private var offBmp: Bitmap? = null
     private var offCvs: Canvas? = null
@@ -60,9 +64,25 @@ class DrawingCanvas(context: Context) : View(context) {
     }
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
 
+    // ✅ Paints خاصة بمؤشر الممحاة: دايرة بيضاء معبّأة + حافة سوداء رفيعة احترافية
+    private val eraserCursorFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = Color.WHITE
+    }
+    private val eraserCursorStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        color = Color.BLACK
+        strokeWidth = 2.2f
+    }
+    private val eraserCursorInnerStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        color = 0x33000000
+        strokeWidth = 1f
+    }
+
     init { setLayerType(LAYER_TYPE_SOFTWARE, null) }
 
-    // ─── Public API ────────────────────────────────────────────────────────[...]
+    // ─── Public API ───────────────────────────────────────────────────────────
 
     fun applyToolState(tool: DrawingTool, state: ToolState) {
         if (tool == currentTool) {
@@ -114,7 +134,7 @@ class DrawingCanvas(context: Context) : View(context) {
         for (s in strokes) commitStroke(cvs, s)
     }
 
-    // ─── Commit (رسم نهائي بعد رفع الإصبع) ─────────────────────────────────────
+    // ─── Commit ───────────────────────────────────────────────────────────────
 
     private fun commitStroke(cvs: Canvas, s: StrokeData) {
         when (s.tool) {
@@ -125,7 +145,7 @@ class DrawingCanvas(context: Context) : View(context) {
             DrawingTool.PEN         -> drawFinePen(cvs, s.path, s)
             DrawingTool.CALLIGRAPHY -> drawCalligraphy(cvs, s)
             DrawingTool.MATTE_PEN   -> drawMatteThick(cvs, s.path, s)
-            DrawingTool.BRUSH       -> drawGrainyPencil(cvs, s)
+            DrawingTool.BRUSH       -> drawRealPencil(cvs, s)
             DrawingTool.HIGHLIGHTER -> drawHighlighter(cvs, s.path, s)
             DrawingTool.LASSO -> {
                 configPlainPaint(strokePaint, s)
@@ -142,7 +162,6 @@ class DrawingCanvas(context: Context) : View(context) {
         paint.strokeCap = Paint.Cap.ROUND; paint.strokeJoin = Paint.Join.ROUND; paint.style = Paint.Style.STROKE
     }
 
-    // ① قلم رفيع ناعم — خط موحد السُمك بدون أي تأثيرات
     private fun drawFinePen(cvs: Canvas, path: Path, s: StrokeData) {
         strokePaint.apply {
             color = s.color; alpha = s.opacity; strokeWidth = s.strokeWidth
@@ -154,7 +173,6 @@ class DrawingCanvas(context: Context) : View(context) {
         strokePaint.pathEffect = null
     }
 
-    // ② قلم ريشة (Calligraphy) — سُمك متغير حسب زاوية الحركة + نهايات مدببة
     private fun drawCalligraphy(cvs: Canvas, s: StrokeData) {
         val pts = s.rawPoints ?: run { configPlainPaint(strokePaint, s); cvs.drawPath(s.path, strokePaint); return }
         if (pts.size < 2) return
@@ -165,7 +183,6 @@ class DrawingCanvas(context: Context) : View(context) {
             val p0 = pts[i]; val p1 = pts[i + 1]
             val dx = p1.x - p0.x; val dy = p1.y - p0.y
             val segAngle = atan2(dy, dx)
-            // كل ما اتجاه الحركة أقرب لزاوية الريشة الثابتة (45°)، كل ما الخط أرفع (محاكاة قلم الخط العربي)
             val diff = abs(((segAngle - nibAngle + Math.PI) % (2 * Math.PI)) - Math.PI)
             val widthFactor = (0.35f + 0.65f * (diff / (Math.PI / 2)).toFloat()).coerceIn(0.35f, 1f)
             val w = baseW * widthFactor
@@ -182,7 +199,6 @@ class DrawingCanvas(context: Context) : View(context) {
         }
     }
 
-    // ③ قلم معتم سميك — خط صلب عريض بدون أي شفافية
     private fun drawMatteThick(cvs: Canvas, path: Path, s: StrokeData) {
         strokePaint.apply {
             color = s.color; alpha = 255; strokeWidth = s.strokeWidth
@@ -192,31 +208,42 @@ class DrawingCanvas(context: Context) : View(context) {
         cvs.drawPath(path, strokePaint)
     }
 
-    // ④ قلم رصاص محبب — نقط صغيرة عشوائية بطول الخط بتحاكي حبيبات الجرافيت
-    private fun drawGrainyPencil(cvs: Canvas, s: StrokeData) {
+    /**
+     * ✅ قلم رصاص حقيقي — خط أساسي ناعم موحّد (زي باقي الأقلام) + Texture خفيف جداً
+     * بدل الدوائر المتناثرة العشوائية (الترتر) القديمة. الإحساس دلوقتي خط رصاص حقيقي
+     * بحبيبات ناعمة جداً تقريباً مش ملحوظة إلا عند التكبير، مش نقط متباعدة واضحة.
+     */
+    private fun drawRealPencil(cvs: Canvas, s: StrokeData) {
+        // ① الخط الأساسي — ناعم وموحّد زي باقي الأقلام
+        strokePaint.apply {
+            color = s.color; alpha = (s.opacity * 0.88f).toInt(); strokeWidth = s.strokeWidth
+            xfermode = null; maskFilter = null
+            strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND; style = Paint.Style.STROKE
+        }
+        cvs.drawPath(s.path, strokePaint)
+
+        // ② Texture خفيف جداً فوق الخط — حبيبات دقيقة وشفافة بتضيف ملمس الرصاص
+        // بدون ما تكسر استمرارية الخط زي الترتر القديم
         val pts = s.rawPoints ?: return
         if (pts.size < 2) return
         val rnd = Random(s.timestamp)
         fillPaint.color = s.color
         for (i in 0 until pts.size - 1) {
             val p0 = pts[i]; val p1 = pts[i + 1]
-            val steps = 4
+            val steps = 3
             for (j in 0..steps) {
                 val t = j / steps.toFloat()
                 val x = p0.x + (p1.x - p0.x) * t
                 val y = p0.y + (p1.y - p0.y) * t
-                repeat(3) {
-                    val jitterX = (rnd.nextFloat() - 0.5f) * s.strokeWidth * 0.9f
-                    val jitterY = (rnd.nextFloat() - 0.5f) * s.strokeWidth * 0.9f
-                    val r = (s.strokeWidth * 0.12f) * (0.5f + rnd.nextFloat() * 0.5f)
-                    fillPaint.alpha = (s.opacity * (0.35f + rnd.nextFloat() * 0.4f)).toInt().coerceIn(0, 255)
-                    cvs.drawCircle(x + jitterX, y + jitterY, r, fillPaint)
-                }
+                val jitterX = (rnd.nextFloat() - 0.5f) * s.strokeWidth * 0.35f
+                val jitterY = (rnd.nextFloat() - 0.5f) * s.strokeWidth * 0.35f
+                val r = s.strokeWidth * 0.08f
+                fillPaint.alpha = ((s.opacity * 0.18f) * rnd.nextFloat()).toInt().coerceIn(0, 60)
+                cvs.drawCircle(x + jitterX, y + jitterY, r, fillPaint)
             }
         }
     }
 
-    // ⑤ ماركر/هايلايتر — شريط عريض مربع النهايات شفاف جزئياً
     private fun drawHighlighter(cvs: Canvas, path: Path, s: StrokeData) {
         strokePaint.apply {
             color = s.color; alpha = s.opacity; strokeWidth = s.strokeWidth
@@ -235,7 +262,7 @@ class DrawingCanvas(context: Context) : View(context) {
         }
     }
 
-    // ─── onDraw ─────────────────────────────────────────────────────────[...]
+    // ─── onDraw ───────────────────────────────────────────────────────────────
 
     override fun onDraw(canvas: Canvas) {
         for (img in imageOverlays) {
@@ -267,60 +294,61 @@ class DrawingCanvas(context: Context) : View(context) {
             }
         }
 
-        val path = activePath ?: return
-        when (currentTool) {
-            DrawingTool.RECTANGLE -> {
-                strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
-                    xfermode = null; maskFilter = null; pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
-                canvas.drawRect(shapePreviewRect, strokePaint)
-            }
-            DrawingTool.ELLIPSE -> {
-                strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
-                    xfermode = null; maskFilter = null; pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
-                canvas.drawOval(shapePreviewRect, strokePaint)
-            }
-            DrawingTool.PIXEL_ERASER -> { eraserPaint.strokeWidth = currentStrokeWidth; canvas.drawPath(path, eraserPaint) }
-            DrawingTool.STROKE_ERASER -> {}
-            DrawingTool.PEN -> {
-                val live = StrokeData(DrawingTool.PEN, path, currentColor, currentStrokeWidth, currentOpacity, currentLineStyle)
-                drawFinePen(canvas, path, live)
-            }
-            DrawingTool.CALLIGRAPHY -> {
-                val live = StrokeData(DrawingTool.CALLIGRAPHY, path, currentColor, currentStrokeWidth, currentOpacity, rawPoints = ArrayList(rawPoints))
-                drawCalligraphy(canvas, live)
-            }
-            DrawingTool.MATTE_PEN -> {
-                val live = StrokeData(DrawingTool.MATTE_PEN, path, currentColor, currentStrokeWidth, 255)
-                drawMatteThick(canvas, path, live)
-            }
-            DrawingTool.BRUSH -> {
-                val live = StrokeData(DrawingTool.BRUSH, path, currentColor, currentStrokeWidth, currentOpacity, rawPoints = ArrayList(rawPoints))
-                drawGrainyPencil(canvas, live)
-            }
-            DrawingTool.HIGHLIGHTER -> {
-                val live = StrokeData(DrawingTool.HIGHLIGHTER, path, currentColor, currentStrokeWidth, currentOpacity)
-                drawHighlighter(canvas, path, live)
-            }
-            DrawingTool.LASER -> {
-                strokePaint.apply {
-                    color = LASER_COLOR; alpha = 255; strokeWidth = currentStrokeWidth
-                    xfermode = null; maskFilter = BlurMaskFilter(currentStrokeWidth * 0.5f, BlurMaskFilter.Blur.SOLID)
-                    pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE
+        val path = activePath
+        if (path != null) {
+            when (currentTool) {
+                DrawingTool.RECTANGLE -> {
+                    strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
+                        xfermode = null; maskFilter = null; pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
+                    canvas.drawRect(shapePreviewRect, strokePaint)
                 }
-                canvas.drawPath(path, strokePaint)
-                strokePaint.maskFilter = null
+                DrawingTool.ELLIPSE -> {
+                    strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
+                        xfermode = null; maskFilter = null; pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
+                    canvas.drawOval(shapePreviewRect, strokePaint)
+                }
+                DrawingTool.PIXEL_ERASER -> { eraserPaint.strokeWidth = currentStrokeWidth; canvas.drawPath(path, eraserPaint) }
+                DrawingTool.STROKE_ERASER -> {}
+                DrawingTool.PEN -> {
+                    val live = StrokeData(DrawingTool.PEN, path, currentColor, currentStrokeWidth, currentOpacity, currentLineStyle)
+                    drawFinePen(canvas, path, live)
+                }
+                DrawingTool.CALLIGRAPHY -> {
+                    val live = StrokeData(DrawingTool.CALLIGRAPHY, path, currentColor, currentStrokeWidth, currentOpacity, rawPoints = ArrayList(rawPoints))
+                    drawCalligraphy(canvas, live)
+                }
+                DrawingTool.MATTE_PEN -> {
+                    val live = StrokeData(DrawingTool.MATTE_PEN, path, currentColor, currentStrokeWidth, 255)
+                    drawMatteThick(canvas, path, live)
+                }
+                DrawingTool.BRUSH -> {
+                    val live = StrokeData(DrawingTool.BRUSH, path, currentColor, currentStrokeWidth, currentOpacity, rawPoints = ArrayList(rawPoints))
+                    drawRealPencil(canvas, live)
+                }
+                DrawingTool.HIGHLIGHTER -> {
+                    val live = StrokeData(DrawingTool.HIGHLIGHTER, path, currentColor, currentStrokeWidth, currentOpacity)
+                    drawHighlighter(canvas, path, live)
+                }
+                DrawingTool.LASSO -> {
+                    strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
+                        xfermode = null; maskFilter = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
+                    applyLineStyle(strokePaint, LineStyle.DASHED, currentStrokeWidth)
+                    canvas.drawPath(path, strokePaint)
+                    strokePaint.pathEffect = null
+                }
             }
-            DrawingTool.LASSO -> {
-                strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
-                    xfermode = null; maskFilter = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
-                applyLineStyle(strokePaint, LineStyle.DASHED, currentStrokeWidth)
-                canvas.drawPath(path, strokePaint)
-                strokePaint.pathEffect = null
-            }
+        }
+
+        // ✅ مؤشر الممحاة — بيترسم فوق كل حاجة، بس وقت استخدام أي ممحاة واللمس شغال فعلياً
+        if (showEraserCursor && (currentTool == DrawingTool.STROKE_ERASER || currentTool == DrawingTool.PIXEL_ERASER)) {
+            val radius = currentStrokeWidth / 2f
+            canvas.drawCircle(eraserCursorX, eraserCursorY, radius, eraserCursorFillPaint)
+            canvas.drawCircle(eraserCursorX, eraserCursorY, radius, eraserCursorStrokePaint)
+            canvas.drawCircle(eraserCursorX, eraserCursorY, radius + 2.5f, eraserCursorInnerStrokePaint)
         }
     }
 
-    // ─── Touch ─────────────────────────────────────────────────────────�[...]
+    // ─── Touch ────────────────────────────────────────────────────────────────
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (!fingerDrawingEnabled) return false
@@ -339,7 +367,14 @@ class DrawingCanvas(context: Context) : View(context) {
         prevX = x; prevY = y
         rawPoints.clear(); rawPoints.add(PointF(x, y))
         when (currentTool) {
-            DrawingTool.STROKE_ERASER -> eraseStrokeAt(x, y)
+            DrawingTool.STROKE_ERASER -> {
+                showEraserCursor = true; eraserCursorX = x; eraserCursorY = y
+                eraseStrokeAt(x, y)
+            }
+            DrawingTool.PIXEL_ERASER -> {
+                showEraserCursor = true; eraserCursorX = x; eraserCursorY = y
+                activePath = Path().apply { moveTo(x, y) }
+            }
             DrawingTool.RECTANGLE, DrawingTool.ELLIPSE -> {
                 shapeStartX = x; shapeStartY = y; shapePreviewRect.set(x, y, x, y); activePath = Path()
             }
@@ -351,7 +386,18 @@ class DrawingCanvas(context: Context) : View(context) {
 
     private fun touchMove(x: Float, y: Float) {
         when (currentTool) {
-            DrawingTool.STROKE_ERASER -> { eraseStrokeAt(x, y); return }
+            DrawingTool.STROKE_ERASER -> {
+                eraserCursorX = x; eraserCursorY = y
+                eraseStrokeAt(x, y)
+                return
+            }
+            DrawingTool.PIXEL_ERASER -> {
+                eraserCursorX = x; eraserCursorY = y
+                val p = activePath ?: return
+                val midX = (prevX + x) / 2f; val midY = (prevY + y) / 2f
+                p.quadTo(prevX, prevY, midX, midY)
+                prevX = x; prevY = y
+            }
             DrawingTool.RECTANGLE, DrawingTool.ELLIPSE ->
                 shapePreviewRect.set(min(shapeStartX, x), min(shapeStartY, y), max(shapeStartX, x), max(shapeStartY, y))
             else -> {
@@ -368,7 +414,17 @@ class DrawingCanvas(context: Context) : View(context) {
     private fun touchUp(x: Float, y: Float) {
         val path = activePath
         when (currentTool) {
-            DrawingTool.STROKE_ERASER -> {}
+            DrawingTool.STROKE_ERASER -> {
+                showEraserCursor = false
+            }
+            DrawingTool.PIXEL_ERASER -> {
+                showEraserCursor = false
+                if (path != null) {
+                    path.lineTo(x, y)
+                    val s = StrokeData(DrawingTool.PIXEL_ERASER, path, currentColor, currentStrokeWidth, currentOpacity)
+                    strokes.add(s); offCvs?.let { commitStroke(it, s) }; onContentChanged?.invoke(true)
+                }
+            }
             DrawingTool.RECTANGLE, DrawingTool.ELLIPSE -> {
                 if (path != null) {
                     val s = StrokeData(currentTool, path, currentColor, currentStrokeWidth, currentOpacity, rect = RectF(shapePreviewRect))
