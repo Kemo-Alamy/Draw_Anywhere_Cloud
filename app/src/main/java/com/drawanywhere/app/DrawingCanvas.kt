@@ -82,7 +82,7 @@ class DrawingCanvas(context: Context) : View(context) {
 
     init { setLayerType(LAYER_TYPE_SOFTWARE, null) }
 
-    // ─── Public API ───────────────────────────────────────────────────────────
+    // ─── Public API ────────────────────────────────────────────────────────[...]
 
     fun applyToolState(tool: DrawingTool, state: ToolState) {
         if (tool == currentTool) {
@@ -134,7 +134,7 @@ class DrawingCanvas(context: Context) : View(context) {
         for (s in strokes) commitStroke(cvs, s)
     }
 
-    // ─── Commit ───────────────────────────────────────────────────────────────
+    // ─── Commit ─────────────────────────────────────────────────────────[...]
 
     private fun commitStroke(cvs: Canvas, s: StrokeData) {
         when (s.tool) {
@@ -222,7 +222,7 @@ class DrawingCanvas(context: Context) : View(context) {
         }
         cvs.drawPath(s.path, strokePaint)
 
-        // ② Texture خفيف جداً فوق الخط — حبيبات دقيقة وشفافة بتضيف ملمس الرصاص
+        // ② Texture خفيف جداً فوق الخط — حبيبات دقيقة وشفافة بتضيف ملمت الرصاص
         // بدون ما تكسر استمرارية الخط زي الترتر القديم
         val pts = s.rawPoints ?: return
         if (pts.size < 2) return
@@ -262,7 +262,7 @@ class DrawingCanvas(context: Context) : View(context) {
         }
     }
 
-    // ─── onDraw ───────────────────────────────────────────────────────────────
+    // ─── onDraw ─────────────────────────────────────────────────────────[...]
 
     override fun onDraw(canvas: Canvas) {
         for (img in imageOverlays) {
@@ -309,6 +309,15 @@ class DrawingCanvas(context: Context) : View(context) {
                 }
                 DrawingTool.PIXEL_ERASER -> { eraserPaint.strokeWidth = currentStrokeWidth; canvas.drawPath(path, eraserPaint) }
                 DrawingTool.STROKE_ERASER -> {}
+                DrawingTool.LASER -> {
+                    strokePaint.apply {
+                        color = LASER_COLOR; alpha = 255; strokeWidth = currentStrokeWidth
+                        xfermode = null; maskFilter = BlurMaskFilter(currentStrokeWidth * 0.5f, BlurMaskFilter.Blur.SOLID)
+                        pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE
+                    }
+                    canvas.drawPath(path, strokePaint)
+                    strokePaint.maskFilter = null
+                }
                 DrawingTool.PEN -> {
                     val live = StrokeData(DrawingTool.PEN, path, currentColor, currentStrokeWidth, currentOpacity, currentLineStyle)
                     drawFinePen(canvas, path, live)
@@ -348,7 +357,7 @@ class DrawingCanvas(context: Context) : View(context) {
         }
     }
 
-    // ─── Touch ────────────────────────────────────────────────────────────────
+    // ─── Touch ─────────────────────────────────────────────────────────�[...]
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (!fingerDrawingEnabled) return false
@@ -378,6 +387,9 @@ class DrawingCanvas(context: Context) : View(context) {
             DrawingTool.RECTANGLE, DrawingTool.ELLIPSE -> {
                 shapeStartX = x; shapeStartY = y; shapePreviewRect.set(x, y, x, y); activePath = Path()
             }
+            DrawingTool.LASER -> {
+                activePath = Path().apply { moveTo(x, y) }
+            }
             DrawingTool.LASSO -> { lassoStartX = x; lassoStartY = y; activePath = Path().apply { moveTo(x, y) } }
             else -> activePath = Path().apply { moveTo(x, y) }
         }
@@ -400,6 +412,13 @@ class DrawingCanvas(context: Context) : View(context) {
             }
             DrawingTool.RECTANGLE, DrawingTool.ELLIPSE ->
                 shapePreviewRect.set(min(shapeStartX, x), min(shapeStartY, y), max(shapeStartX, x), max(shapeStartY, y))
+            DrawingTool.LASER -> {
+                val p = activePath ?: return
+                val midX = (prevX + x) / 2f; val midY = (prevY + y) / 2f
+                p.quadTo(prevX, prevY, midX, midY)
+                rawPoints.add(PointF(x, y))
+                prevX = x; prevY = y
+            }
             else -> {
                 val p = activePath ?: return
                 val midX = (prevX + x) / 2f; val midY = (prevY + y) / 2f
