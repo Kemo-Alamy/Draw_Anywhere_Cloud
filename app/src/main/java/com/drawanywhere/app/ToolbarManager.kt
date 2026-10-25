@@ -159,25 +159,11 @@ class ToolbarManager(
     }
 
     /**
-     * ✅ Click عادي = toggleToolsPanel() | Long-Press 3 ثواني = togglePenNibsPopup()
-     * كل القرارات التانية (هل مفتوح/مقفول) بقت مسؤولية PanelManager وحده الآن
+     * Normal tap action: one click => one toggle on release.
+     * Long press action: separate long-click path for pen nibs popup.
      */
     private fun attachToolsButtonGestures(view: View) {
         val btn = view.findViewById<View>(R.id.btn_tools) ?: return
-        val touchSlop = ViewConfiguration.get(service).scaledTouchSlop
-        var pressDownX = 0f
-        var pressDownY = 0f
-        var longPressArmed = false
-        var longPressFired = false
-        val LONG_PRESS_MS = 3000L
-
-        val longPressRunnable = Runnable {
-            if (!longPressArmed || longPressFired) return@Runnable
-            longPressFired = true
-            btn.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-            resetFadeTimer()
-            panelManager.togglePenNibsPopup()
-        }
 
         btn.setOnClickListener {
             val now = SystemClock.elapsedRealtime()
@@ -187,46 +173,10 @@ class ToolbarManager(
             panelManager.toggleToolsPanel()
         }
 
-        btn.setOnTouchListener { v, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    longPressArmed = true
-                    longPressFired = false
-                    pressDownX = event.rawX
-                    pressDownY = event.rawY
-                    v.postDelayed(longPressRunnable, LONG_PRESS_MS)
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    if (!longPressArmed) return@setOnTouchListener false
-                    val dx = abs(event.rawX - pressDownX)
-                    val dy = abs(event.rawY - pressDownY)
-                    if (dx > touchSlop * 3 || dy > touchSlop * 3) {
-                        longPressArmed = false
-                        v.removeCallbacks(longPressRunnable)
-                    }
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-                    v.removeCallbacks(longPressRunnable)
-                    if (!longPressFired && longPressArmed) {
-                        longPressArmed = false
-                        longPressFired = false
-                        v.performClick()
-                        return@setOnTouchListener true
-                    }
-                    longPressArmed = false
-                    longPressFired = false
-                    true
-                }
-                MotionEvent.ACTION_CANCEL -> {
-                    v.removeCallbacks(longPressRunnable)
-                    longPressArmed = false
-                    longPressFired = false
-                    true
-                }
-                else -> false
-            }
+        btn.setOnLongClickListener {
+            resetFadeTimer()
+            panelManager.togglePenNibsPopup()
+            true
         }
     }
 
