@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.*
 import android.widget.*
 import androidx.viewpager2.widget.ViewPager2
@@ -26,6 +27,7 @@ class PanelManager(
     // مفيش Boolean flags منفصلة ممكن تحصل لها Desync مع الـ View الفعلي
     private val panelViews = mutableMapOf<PanelType, View>()
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var activePanel: PanelType? = null
 
     private val toolStates = mutableMapOf<DrawingTool, ToolState>()
 
@@ -43,19 +45,23 @@ class PanelManager(
     }
 
     private fun isOpen(type: PanelType): Boolean = panelViews[type] != null
+    fun isPanelOpen(type: PanelType): Boolean = isOpen(type)
 
     fun dismissAll() {
         PanelType.entries.forEach { dismiss(it) }
     }
 
-    /** ✅ الدالة الصريحة الوحيدة للإغلاق — بتتستخدم من ACTION_OUTSIDE ومن الأزرار الداخلية، أبداً من زرار التولبار مباشرة */
-    private fun dismiss(type: PanelType) {
-        val view = panelViews[type] ?: return
+    /** ✅ الدالة الصريحة الوحيدة للإغلاق — بتتستخدم من ACTION_OUTSIDE ومن الأزرار الداخلية، أبداً من زرار التولبار */
+    fun dismiss(type: PanelType) {
+        val view = panelViews[type]
         panelViews.remove(type)
-        mainHandler.post {
-            try { windowManager.removeView(view) }
-            catch (e: Exception) { e.printStackTrace() }
-            finally { /* الـ Map اتنضفت فعلياً قبل الـ post، فمفيش حاجة تعلق */ }
+        if (activePanel == type) activePanel = null
+        if (view != null) {
+            try {
+                windowManager.removeViewImmediate(view)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -69,12 +75,16 @@ class PanelManager(
      * غير كده → يقفل أي حاجة تانية مفتوحة، ويفتحها هي
      */
     private fun togglePanel(type: PanelType, showFn: () -> Unit) {
+        Log.d("PanelManager", "Toggling panel: $type, isOpen: ${isOpen(type)}")
+
         if (isOpen(type)) {
             dismiss(type)
-        } else {
-            dismissAllExcept(type)
-            showFn()
+            return
         }
+
+        dismissAllExcept(type)
+        activePanel = type
+        showFn()
     }
 
     // ─── القائمة الأساسية (Click عادي) ─────────────────────────────────────────
@@ -447,7 +457,7 @@ class PanelManager(
         view.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_OUTSIDE) {
                 if (::drawingCanvas.isInitialized) drawingCanvas.suppressNextTouchGesture()
-                dismiss(type) // ← صريح وحيد الاتجاه، أبداً toggle
+                dismiss(type)
                 true
             } else false
         }
