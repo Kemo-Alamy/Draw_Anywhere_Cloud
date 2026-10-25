@@ -3,78 +3,125 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:background="@drawable/bg_toolbar"
-    android:paddingStart="6dp"
-    android:paddingEnd="6dp"
-    android:paddingTop="4dp"
-    android:paddingBottom="4dp"
-    android:elevation="8dp">
+    android:orientation="vertical"
+    android:gravity="center_horizontal">
 
-    <ImageView
-        android:id="@+id/btn_hide"
-        android:layout_width="46dp"
-        android:layout_height="46dp"
-        android:padding="10dp"
-        android:src="@drawable/ic_eye"
-        android:tint="@color/toolbar_icon_default"
-        android:scaleType="fitCenter"
-        android:background="@android:color/transparent"
-        android:clickable="true"
-        android:focusable="true"
-        android:contentDescription="@string/cd_btn_hide" />
+    <!-- ✅ مقبض السحب العلوي — إشارة بصرية إنه ممكن يتسحب -->
+    <View
+        android:layout_width="30dp"
+        android:layout_height="4dp"
+        android:background="@drawable/bg_grip_handle"
+        android:layout_marginBottom="3dp" />
 
-    <ImageView
-        android:id="@+id/btn_undo"
-        android:layout_width="46dp"
-        android:layout_height="46dp"
-        android:padding="10dp"
-        android:src="@drawable/ic_undo"
-        android:tint="@color/toolbar_icon_default"
-        android:scaleType="fitCenter"
-        android:background="@android:color/transparent"
-        android:clickable="true"
-        android:focusable="true"
-        android:alpha="0.35"
-        android:enabled="false"
-        android:contentDescription="@string/cd_btn_undo" />
+    <LinearLayout
+        android:id="@+id/toolbar_content_row"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_toolbar"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:elevation="8dp">
 
-    <!-- ✅ أيقونة اللون الجديدة — Droplet عصري بيتلون ديناميكياً -->
-    <com.drawanywhere.app.ColorDropView
-        android:id="@+id/view_color_dot"
-        android:layout_width="28dp"
-        android:layout_height="32dp"
-        android:layout_marginStart="5dp"
-        android:layout_marginEnd="5dp"
-        android:clickable="true"
-        android:focusable="true"
-        android:contentDescription="@string/cd_color_dot" />
+        <ImageView
+            android:id="@+id/btn_hide"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:padding="10dp"
+            android:src="@drawable/ic_eye"
+            android:tint="@color/toolbar_icon_default"
+            android:scaleType="fitCenter"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/cd_btn_hide" />
 
-    <ImageView
-        android:id="@+id/btn_finger"
-        android:layout_width="46dp"
-        android:layout_height="46dp"
-        android:padding="10dp"
-        android:src="@drawable/ic_finger"
-        android:tint="@color/toolbar_icon_default"
-        android:scaleType="fitCenter"
-        android:background="@android:color/transparent"
-        android:clickable="true"
-        android:focusable="true"
-        android:contentDescription="@string/cd_btn_finger" />
+        <ImageView
+            android:id="@+id/btn_undo"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:padding="10dp"
+            android:src="@drawable/ic_undo"
+            android:tint="@color/toolbar_icon_default"
+            android:scaleType="fitCenter"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:focusable="true"
+            android:alpha="0.35"
+            android:enabled="false"
+            android:contentDescription="@string/cd_btn_undo" />
 
-    <ImageView
-        android:id="@+id/btn_settings"
-        android:layout_width="46dp"
-        android:layout_height="46dp"
-        android:padding="10dp"
-        android:src="@drawable/ic_settings"
-        android:tint="@color/toolbar_icon_default"
-        android:scaleType="fitCenter"
-        android:background="@android:color/transparent"
-        android:clickable="true"
-        android:focusable="true"
-        android:contentDescription="@string/cd_btn_settings" />
+        <com.drawanywhere.app.ColorDropView
+            android:id="@+id/view_color_dot"
+            android:layout_width="28dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="5dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/cd_color_dot" />
+
+        <ImageView
+            android:id="@+id/btn_tools"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:padding="10dp"
+            android:src="@drawable/ic_pen"
+            android:tint="@color/toolbar_icon_default"
+            android:scaleType="fitCenter"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/cd_btn_tools" />
+
+        <ImageView
+            android:id="@+id/btn_finger"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:padding="10dp"
+            android:src="@drawable/ic_finger"
+            android:tint="@color/toolbar_icon_default"
+            android:scaleType="fitCenter"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/cd_btn_finger" />
+
+        <ImageView
+            android:id="@+id/btn_settings"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:padding="10dp"
+            android:src="@drawable/ic_settings"
+            android:tint="@color/toolbar_icon_default"
+            android:scaleType="fitCenter"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/cd_btn_settings" />
+
+        <!-- ✅ زرار السهم — يصغّر/يكبّر الشريط الأفقي -->
+        <FrameLayout
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/bg_collapse_pill">
+            <ImageView
+                android:id="@+id/btn_collapse_arrow"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="6dp"
+                android:src="@drawable/ic_chevron_up"
+                android:tint="@color/toolbar_icon_default"
+                android:scaleType="fitCenter"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/cd_btn_collapse" />
+        </FrameLayout>
+
+    </LinearLayout>
 
 </LinearLayout>
