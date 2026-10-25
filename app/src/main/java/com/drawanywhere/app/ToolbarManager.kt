@@ -5,6 +5,7 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.transition.Fade
 import android.transition.TransitionManager
 import android.transition.TransitionSet
@@ -34,6 +35,8 @@ class ToolbarManager(
     private var windowInitY    = 0
     private var isDragging     = false
     private val DRAG_THRESHOLD = 10f
+
+    private var lastToolsToggleAt = 0L
 
     private val toolIconMap = mapOf(
         DrawingTool.PEN           to R.drawable.ic_pen,
@@ -176,6 +179,14 @@ class ToolbarManager(
             panelManager.togglePenNibsPopup()
         }
 
+        btn.setOnClickListener {
+            val now = SystemClock.elapsedRealtime()
+            if (now - lastToolsToggleAt < 250L) return@setOnClickListener
+            lastToolsToggleAt = now
+            resetFadeTimer()
+            panelManager.toggleToolsPanel()
+        }
+
         btn.setOnTouchListener { v, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
@@ -199,9 +210,10 @@ class ToolbarManager(
                 MotionEvent.ACTION_UP -> {
                     v.removeCallbacks(longPressRunnable)
                     if (!longPressFired && longPressArmed) {
+                        longPressArmed = false
+                        longPressFired = false
                         v.performClick()
-                        resetFadeTimer()
-                        panelManager.toggleToolsPanel()
+                        return@setOnTouchListener true
                     }
                     longPressArmed = false
                     longPressFired = false
@@ -216,7 +228,6 @@ class ToolbarManager(
                 else -> false
             }
         }
-        btn.setOnClickListener(null)
     }
 
     private fun toggleCanvasVisibility() {
@@ -289,4 +300,3 @@ class ToolbarManager(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         else @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
 }
-
