@@ -14,7 +14,7 @@ import android.widget.*
 import androidx.viewpager2.widget.ViewPager2
 
 /** ✅ كل أنواع الـ Popups الممكنة — ده المصدر الوحيد للحقيقة بدل أي Boolean منفصل */
-private enum class PanelType { TOOLS, COLOR, SETTINGS, PEN_NIBS }
+enum class PanelType { TOOLS, COLOR, SETTINGS, PEN_NIBS }
 
 class PanelManager(
     private val service: DrawingService,
@@ -276,7 +276,7 @@ class PanelManager(
             if (tool == DrawingTool.HIGHLIGHTER) it.color = service.appPreferences.highlighterColor
         }
 
-    // ─── Color Panel ────────────────────────────────────────────────────────
+    // ─── Color Panel ───────────────────────────────────────────────────────
 
     fun toggleColorPanel() = togglePanel(PanelType.COLOR) { showColorPanel() }
 
@@ -433,7 +433,7 @@ class PanelManager(
         } catch (e: Exception) { e.printStackTrace() }
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
+    // ─── Helpers ────────────────────────────────────────────────────────
 
     private fun toHex(color: Int): String = "#%06X".format(0xFFFFFF and color)
     private fun inflate(id: Int): View = LayoutInflater.from(service).inflate(id, null)
