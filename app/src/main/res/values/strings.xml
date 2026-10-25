@@ -34,7 +34,6 @@
     <string name="settings_quit">Quit</string>
     <string name="settings_contact_developer">Contact With developer</string>
 
-    <!-- ✅ تخصيص شاشة About بالكامل -->
     <string name="panel_about">About</string>
     <string name="about_app_name">DrawAnywhere</string>
     <string name="about_app_version">2.3 (5)</string>
@@ -54,4 +53,5 @@
     <string name="cd_btn_settings">Open settings</string>
     <string name="cd_color_dot">Current drawing color</string>
     <string name="cd_btn_finger">Toggle touch pass-through</string>
+    <string name="cd_btn_collapse">Collapse or expand toolbar</string>
 </resources>
