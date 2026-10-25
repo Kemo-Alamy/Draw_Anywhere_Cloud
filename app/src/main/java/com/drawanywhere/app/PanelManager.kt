@@ -8,12 +8,11 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.*
 import android.widget.*
 import androidx.viewpager2.widget.ViewPager2
 
-/** ✅ كل أنواع الـ Popups الممكنة — ده المصدر الوحيد للحقيقة بدل أي Boolean منفصل */
+/** ✅ enum عادي ظاهر (مش private) — بيمنع أي مشاكل Visibility مستقبلية لو احتجنا نستخدمه برا الملف ده */
 enum class PanelType { TOOLS, COLOR, SETTINGS, PEN_NIBS }
 
 class PanelManager(
@@ -23,11 +22,8 @@ class PanelManager(
     lateinit var drawingCanvas: DrawingCanvas
     lateinit var toolbarManager: ToolbarManager
 
-    // ✅ Map واحدة بس — isOpen(panel) = panelViews[panel] != null
-    // مفيش Boolean flags منفصلة ممكن تحصل لها Desync مع الـ View الفعلي
     private val panelViews = mutableMapOf<PanelType, View>()
     private val mainHandler = Handler(Looper.getMainLooper())
-    private var activePanel: PanelType? = null
 
     private val toolStates = mutableMapOf<DrawingTool, ToolState>()
 
@@ -44,24 +40,19 @@ class PanelManager(
         DrawingTool.entries.forEach { tool -> toolStates[tool] = service.appPreferences.getToolState(tool) }
     }
 
-    private fun isOpen(type: PanelType): Boolean = panelViews[type] != null
-    fun isPanelOpen(type: PanelType): Boolean = isOpen(type)
+    fun isOpen(type: PanelType): Boolean = panelViews[type] != null
 
     fun dismissAll() {
         PanelType.entries.forEach { dismiss(it) }
     }
 
-    /** ✅ الدالة الصريحة الوحيدة للإغلاق — بتتستخدم من ACTION_OUTSIDE ومن الأزرار الداخلية، أبداً من زرار التولبار */
+    /** ✅ Hard Gate — بينضف الحالة والـ Map فوراً قبل إزالة الـ View الفعلي من الـ WindowManager */
     fun dismiss(type: PanelType) {
-        val view = panelViews[type]
+        val view = panelViews[type] ?: return
         panelViews.remove(type)
-        if (activePanel == type) activePanel = null
-        if (view != null) {
-            try {
-                windowManager.removeViewImmediate(view)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+        mainHandler.post {
+            try { windowManager.removeView(view) }
+            catch (e: Exception) { e.printStackTrace() }
         }
     }
 
@@ -69,22 +60,13 @@ class PanelManager(
         PanelType.entries.filter { it != type }.forEach { dismiss(it) }
     }
 
-    /**
-     * ✅ المنطق الوحيد المُخوّل لفتح/قفل أي Popup — بيُستدعى فقط من ضغطة زرار التولبار
-     * لو مفتوحة فعلاً (الـ View موجودة في الـ Map) → يقفلها
-     * غير كده → يقفل أي حاجة تانية مفتوحة، ويفتحها هي
-     */
     private fun togglePanel(type: PanelType, showFn: () -> Unit) {
-        Log.d("PanelManager", "Toggling panel: $type, isOpen: ${isOpen(type)}")
-
         if (isOpen(type)) {
             dismiss(type)
-            return
+        } else {
+            dismissAllExcept(type)
+            showFn()
         }
-
-        dismissAllExcept(type)
-        activePanel = type
-        showFn()
     }
 
     // ─── القائمة الأساسية (Click عادي) ─────────────────────────────────────────
@@ -140,7 +122,7 @@ class PanelManager(
         dismiss(PanelType.TOOLS)
     }
 
-    // ─── Pen Nibs Popup (Long-Press 3 ثواني) ──────────────────────────────────
+    // ─── Pen Nibs Popup (Long-Press) ───────────────────────────────────────────
 
     fun togglePenNibsPopup() = togglePanel(PanelType.PEN_NIBS) { showPenNibsPopup() }
 
@@ -276,7 +258,7 @@ class PanelManager(
             if (tool == DrawingTool.HIGHLIGHTER) it.color = service.appPreferences.highlighterColor
         }
 
-    // ─── Color Panel ───────────────────────────────────────────────────────
+    // ─── Color Panel ────────────────────────────────────────────────────────
 
     fun toggleColorPanel() = togglePanel(PanelType.COLOR) { showColorPanel() }
 
@@ -433,21 +415,13 @@ class PanelManager(
         } catch (e: Exception) { e.printStackTrace() }
     }
 
-    // ─── Helpers ────────────────────────────────────────────────────────
+    // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private fun toHex(color: Int): String = "#%06X".format(0xFFFFFF and color)
     private fun inflate(id: Int): View = LayoutInflater.from(service).inflate(id, null)
 
     private enum class PanelAnchor { TOOLS_BUTTON, COLOR_DOT, SETTINGS_BUTTON }
 
-    /**
-     * ✅ كل WindowManager.addView بيحصل جوه mainHandler.post لضمان التنفيذ على الـ Main Looper
-     * الـ View بتتسجل في panelViews[type] فوراً (قبل الـ post) عشان isOpen() يشتغل صح
-     * من أول لحظة، حتى لو الـ addView الفعلي لسه مستني الدور في الـ Looper.
-     *
-     * ✅ ACTION_OUTSIDE بقى بيستدعي dismiss(type) بشكل صريح فقط — أبداً toggle،
-     * وده اللي بيكسر الـ Race Condition القديم نهائياً.
-     */
     private fun addPanel(view: View, type: PanelType, anchorTo: PanelAnchor) {
         val params = buildPanelParams(anchorTo)
         mainHandler.post {
