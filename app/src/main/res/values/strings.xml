@@ -32,12 +32,14 @@
     <string name="settings_open_on_start">Open canvas on start</string>
     <string name="settings_finger_drawing">Finger drawing</string>
     <string name="settings_quit">Quit</string>
-    <!-- ✅ جديد -->
     <string name="settings_contact_developer">Contact With developer</string>
 
+    <!-- ✅ تخصيص شاشة About بالكامل -->
     <string name="panel_about">About</string>
     <string name="about_app_name">DrawAnywhere</string>
-    <string name="about_text">© 2021–2026 shez.k\n\nlicensed under AGPLv3 or\nany later version\n\nApp icon by Solar Icons,\nlicensed under CC BY 4.0</string>
+    <string name="about_app_version">2.3 (5)</string>
+    <string name="about_developer_credit">Developed by Kemo</string>
+    <string name="about_text">© 2026 Kemo\n\nDrawAnywhere — Floating screen\nannotation tool for Android\n\nAll rights reserved.</string>
 
     <string name="perm_title">Overlay Permission Required</string>
     <string name="perm_message">DrawAnywhere needs permission to draw over other apps.</string>
