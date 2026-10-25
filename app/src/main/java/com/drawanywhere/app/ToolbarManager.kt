@@ -156,10 +156,8 @@ class ToolbarManager(
     }
 
     /**
-     * ✅ الإصلاح الحقيقي:
-     * الزرار دلوقتي بيستدعي panelManager.togglePenNibsPopup()/toggleToolsPanel()
-     * واللي جواهم بقى بيتأكد فعلياً من isPenNibsPopupOpen()/isToolsPanelOpen()
-     * قبل ما يقرر يفتح أو يقفل — مش بس يعتمد على متغير محلي هنا كان بيتصفر غلط
+     * ✅ Click عادي = toggleToolsPanel() | Long-Press 3 ثواني = togglePenNibsPopup()
+     * كل القرارات التانية (هل مفتوح/مقفول) بقت مسؤولية PanelManager وحده الآن
      */
     private fun attachToolsButtonGestures(view: View) {
         val btn = view.findViewById<View>(R.id.btn_tools) ?: return
