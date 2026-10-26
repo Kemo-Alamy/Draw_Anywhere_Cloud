@@ -4,9 +4,9 @@
     <dimen name="popup_unified_height">330dp</dimen>
     <dimen name="popup_unified_radius">18dp</dimen>
     <dimen name="popup_dots_row_height">24dp</dimen>
-
-    <!-- ✅ معدّل — كبرت العرض ليقارب حجم نافذة الإعدادات -->
-    <dimen name="popup_tools_list_width">220dp</dimen>
-
+    <dimen name="popup_tools_list_width">150dp</dimen>
     <dimen name="popup_pen_nibs_width">250dp</dimen>
+
+    <!-- ✅ جديد — طول منطقة التلاشي الشفاف عند حواف الشريط القابل للسحب -->
+    <dimen name="toolbar_fading_edge_length">18dp</dimen>
 </resources>
