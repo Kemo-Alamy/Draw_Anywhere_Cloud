@@ -1,5 +1,7 @@
 package com.drawanywhere.app
 
+import android.widget.HorizontalScrollView
+import android.widget.ScrollView
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.graphics.PixelFormat
