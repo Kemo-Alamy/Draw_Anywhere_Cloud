@@ -25,7 +25,7 @@
         android:paddingBottom="4dp"
         android:elevation="8dp">
 
-        <!-- ✅ العين — دايماً ظاهرة، برا منطقة السحب -->
+        <!-- ✅ العين — دايماً ظاهرة -->
         <ImageView
             android:id="@+id/btn_hide"
             android:layout_width="46dp"
@@ -39,11 +39,33 @@
             android:focusable="true"
             android:contentDescription="@string/cd_btn_hide" />
 
-        <!-- ✅ منطقة قابلة للسحب أفقياً — فيها باقي الأدوات + حافة تلاشي شفافة -->
+        <!-- ✅ السهم — صغير جداً بس، متجه لليمين ثابت، بياخد مساحة ثابتة صغيرة مش بتكبر ولا بتصغر -->
+        <FrameLayout
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/bg_collapse_pill">
+            <ImageView
+                android:id="@+id/btn_collapse_arrow"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="6dp"
+                android:src="@drawable/ic_chevron_right"
+                android:tint="@color/toolbar_icon_default"
+                android:scaleType="fitCenter"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/cd_btn_collapse" />
+        </FrameLayout>
+
+        <!-- ✅ منطقة الأدوات القابلة للطي — عرض أقصى محدود (مش wrap_content مفتوح)
+             وده اللي بيضمن ظهور Fade عند الحافة لو الأدوات أكتر من المساحة المتاحة -->
         <HorizontalScrollView
             android:id="@+id/toolbar_scroll_container"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="0"
             android:scrollbars="none"
             android:overScrollMode="never"
             android:requiresFadingEdge="horizontal"
@@ -70,6 +92,19 @@
                     android:alpha="0.35"
                     android:enabled="false"
                     android:contentDescription="@string/cd_btn_undo" />
+
+                <ImageView
+                    android:id="@+id/btn_add_image"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_image"
+                    android:tint="@color/toolbar_icon_default"
+                    android:scaleType="fitCenter"
+                    android:background="@android:color/transparent"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="@string/cd_btn_image" />
 
                 <com.drawanywhere.app.ColorDropView
                     android:id="@+id/view_color_dot"
@@ -122,25 +157,6 @@
 
             </LinearLayout>
         </HorizontalScrollView>
-
-        <!-- ✅ السهم — دايماً ظاهر، بيصغّر/يكبّر منطقة السحب بس، مش بيقفلها خالص -->
-        <FrameLayout
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:layout_marginStart="2dp"
-            android:background="@drawable/bg_collapse_pill">
-            <ImageView
-                android:id="@+id/btn_collapse_arrow"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="6dp"
-                android:src="@drawable/ic_chevron_up"
-                android:tint="@color/toolbar_icon_default"
-                android:scaleType="fitCenter"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="@string/cd_btn_collapse" />
-        </FrameLayout>
 
     </LinearLayout>
 
