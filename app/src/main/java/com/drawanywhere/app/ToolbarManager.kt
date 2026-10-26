@@ -1,6 +1,7 @@
 package com.drawanywhere.app
 
 import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
@@ -36,12 +37,13 @@ class ToolbarManager(
     private var isDragging     = false
     private val DRAG_THRESHOLD = 10f
 
-    // ✅ Debounce — بيمنع أي ضغطتين قريبتين جداً من نفس الزرار من التسبب في Double-fire
     private val CLICK_DEBOUNCE_MS = 250L
     private var lastClickTimeByView = mutableMapOf<Int, Long>()
 
-    // ✅ حالة التصغير (Collapse) — سواء كان الشريط مطوي أو مفتوح
-    private var isToolbarCollapsed = false
+    // ✅ حالة وبيانات تصغير منطقة السحب (مش الشريط كله)
+    private var isScrollCollapsed = false
+    private var scrollFullSize    = 0
+    private var scrollAnimator: ValueAnimator? = null
 
     private val toolIconMap = mapOf(
         DrawingTool.PEN           to R.drawable.ic_pen,
@@ -66,6 +68,7 @@ class ToolbarManager(
 
     fun destroy() {
         fadeHandler.removeCallbacksAndMessages(null)
+        scrollAnimator?.cancel()
         try { toolbarView?.let { windowManager.removeView(it) } } catch (_: Exception) { }
         toolbarView = null; toolbarParams = null
     }
@@ -111,7 +114,22 @@ class ToolbarManager(
         val layoutId = if (orientation == ToolbarOrientation.HORIZONTAL) R.layout.overlay_toolbar_horizontal else R.layout.overlay_toolbar_vertical
         val view = LayoutInflater.from(service).inflate(layoutId, null)
         toolbarView = view
-        isToolbarCollapsed = false
+        isScrollCollapsed = false
+        scrollFullSize = 0
+
+        // ✅ تفعيل حافة التلاشي الشفافة برمجياً — أضمن من الـ XML وحده على بعض الأجهزة
+        val scrollContainer = view.findViewById<View>(R.id.toolbar_scroll_container)
+        val fadeLenPx = (service.resources.getDimension(R.dimen.toolbar_fading_edge_length)).toInt()
+        when (scrollContainer) {
+            is HorizontalScrollView -> {
+                scrollContainer.isHorizontalFadingEdgeEnabled = true
+                scrollContainer.setFadingEdgeLength(fadeLenPx)
+            }
+            is ScrollView -> {
+                scrollContainer.isVerticalFadingEdgeEnabled = true
+                scrollContainer.setFadingEdgeLength(fadeLenPx)
+            }
+        }
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
@@ -136,7 +154,6 @@ class ToolbarManager(
 
     // ─── Debounced Click Helper ─────────────────────────────────────────────────
 
-    /** ✅ أي ضغطة خلال 250ms من آخر ضغطة على نفس الزرار بتتجاهل تماماً */
     private fun debouncedClick(viewId: Int, action: () -> Unit) {
         val now = SystemClock.elapsedRealtime()
         val last = lastClickTimeByView[viewId] ?: 0L
@@ -169,12 +186,10 @@ class ToolbarManager(
             }
         }
 
-        // ✅ Click نضيف فقط — مفيش OnTouchListener يدوي خالص هنا
         view.findViewById<View>(R.id.btn_tools)?.setOnClickListener {
             debouncedClick(R.id.btn_tools) { resetFadeTimer(); panelManager.toggleToolsPanel() }
         }
 
-        // ✅ Long-Click منفصل تماماً — النظام نفسه بيتولى توقيت الـ Long-Press (قياسي وموثوق)
         view.findViewById<View>(R.id.btn_tools)?.setOnLongClickListener {
             resetFadeTimer()
             it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
@@ -200,64 +215,74 @@ class ToolbarManager(
         }
     }
 
-    // ─── Collapse / Expand Arrow ────────────────────────────────────────────────
+    // ─── Collapse Arrow — بيصغّر/يكبّر منطقة السحب بس بالملليمتر ────────────────
 
-    /**
-     * ✅ زرار السهم الاحترافي — بيطوي/يفرد الشريط لـ Pill مضغوط
-     * الأفقي: Chevron Up ↔ Chevron Down
-     * الرأسي: Chevron Left ↔ Chevron Right
-     */
     private fun setupCollapseArrow(view: View) {
         val arrowBtn = view.findViewById<ImageView>(R.id.btn_collapse_arrow) ?: return
+        val scrollContainer = view.findViewById<View>(R.id.toolbar_scroll_container) ?: return
+
         arrowBtn.setOnClickListener {
             debouncedClick(R.id.btn_collapse_arrow) {
                 resetFadeTimer()
-                isToolbarCollapsed = !isToolbarCollapsed
-                applyCollapseState(view, arrowBtn)
+                isScrollCollapsed = !isScrollCollapsed
+                animateScrollCollapse(view, scrollContainer, arrowBtn, isScrollCollapsed)
             }
         }
     }
 
-    private fun applyCollapseState(view: View, arrowBtn: ImageView) {
+    /**
+     * ✅ الأنيميشن الأساسي — زي حركة العين بالظبط:
+     * بيحرك عرض (أو ارتفاع) منطقة السحب تدريجياً بين 0 والحجم الكامل عبر ValueAnimator،
+     * مع Fade في الشفافية في نفس الوقت، وكل Frame بيحدّث WindowManager فورياً
+     * فيبقى الانتقال سلس زي السحب الحقيقي — مش قفل/فتح فجائي.
+     * العين والسهم نفسهم بيفضلوا ظاهرين طول الوقت.
+     */
+    private fun animateScrollCollapse(root: View, scrollContainer: View, arrowBtn: ImageView, collapse: Boolean) {
         val isH = currentOrientation == ToolbarOrientation.HORIZONTAL
-        val contentGroup = if (isH)
-            view.findViewById<ViewGroup>(R.id.toolbar_content_row)
-        else
-            view.findViewById<ViewGroup>(R.id.toolbar_content_col)
 
-        val transition = TransitionSet().apply {
-            addTransition(Fade(Fade.OUT))
-            addTransition(android.transition.ChangeBounds())
-            addTransition(Fade(Fade.IN))
-            ordering = TransitionSet.ORDERING_TOGETHER
-            duration = 320L
-            interpolator = DecelerateInterpolator(1.3f)
+        if (scrollFullSize == 0) {
+            scrollFullSize = if (isH) scrollContainer.width else scrollContainer.height
         }
-        TransitionManager.beginDelayedTransition(contentGroup, transition)
+        if (scrollFullSize == 0) {
+            // لسه مترسمش بالكامل — نأجل المحاولة لحد ما يترسم
+            scrollContainer.post { animateScrollCollapse(root, scrollContainer, arrowBtn, collapse) }
+            return
+        }
 
-        val vis = if (isToolbarCollapsed) View.GONE else View.VISIBLE
-        val idsToHide = listOf(
-            R.id.btn_hide, R.id.btn_undo, R.id.btn_clear, R.id.btn_add_image,
-            R.id.btn_tools, R.id.view_color_dot, R.id.btn_finger, R.id.btn_settings,
-            R.id.toolbar_divider
-        )
-        idsToHide.forEach { id -> contentGroup.findViewById<View>(id)?.visibility = vis }
+        val params = scrollContainer.layoutParams
+        val startSize = if (isH) {
+            if (params.width > 0) params.width else scrollFullSize
+        } else {
+            if (params.height > 0) params.height else scrollFullSize
+        }
+        val endSize = if (collapse) 0 else scrollFullSize
 
-        // تحديث اتجاه السهم حسب الحالة الجديدة
+        scrollAnimator?.cancel()
+        scrollAnimator = ValueAnimator.ofInt(startSize, endSize).apply {
+            duration = 260L
+            interpolator = DecelerateInterpolator(1.3f)
+            addUpdateListener { anim ->
+                val size = anim.animatedValue as Int
+                if (isH) params.width = size else params.height = size
+                scrollContainer.layoutParams = params
+                scrollContainer.alpha = (size.toFloat() / scrollFullSize).coerceIn(0f, 1f)
+                toolbarParams?.let { tp ->
+                    try { windowManager.updateViewLayout(root, tp) } catch (_: Exception) { }
+                }
+            }
+            start()
+        }
+
         arrowBtn.setImageResource(
             if (isH) {
-                if (isToolbarCollapsed) R.drawable.ic_chevron_down else R.drawable.ic_chevron_up
+                if (collapse) R.drawable.ic_chevron_down else R.drawable.ic_chevron_up
             } else {
-                if (isToolbarCollapsed) R.drawable.ic_chevron_right else R.drawable.ic_chevron_left
+                if (collapse) R.drawable.ic_chevron_right else R.drawable.ic_chevron_left
             }
         )
-
-        toolbarParams?.let { params ->
-            contentGroup.post { try { windowManager.updateViewLayout(view, params) } catch (_: Exception) { } }
-        }
     }
 
-    // ─── Toggle Canvas Visibility (Eye) ───────────────────────────────────────
+    // ─── Toggle Canvas Visibility (Eye) — منفصل تماماً عن السهم ───────────────
 
     private fun toggleCanvasVisibility() {
         canvasVisible = !canvasVisible
@@ -269,7 +294,7 @@ class ToolbarManager(
         collapseCanvasHideState(!canvasVisible)
     }
 
-    /** إخفاء بيانات الرسم (مش نفس Collapse Arrow — ده خاص بزرار العين فقط، بيسيب السهم والمقبض زي ما هم) */
+    /** إخفاء كامل الشريط (ماعدا العين) عند إخفاء لوحة الرسم — ميكانيزم مستقل عن السهم */
     private fun collapseCanvasHideState(hideMode: Boolean) {
         val v = toolbarView as? ViewGroup ?: return
         val params = toolbarParams ?: return
@@ -283,8 +308,10 @@ class ToolbarManager(
         TransitionManager.beginDelayedTransition(contentGroup, transition)
 
         val vis = if (hideMode) View.GONE else View.VISIBLE
-        listOf(R.id.btn_undo, R.id.btn_clear, R.id.btn_add_image, R.id.btn_tools, R.id.view_color_dot, R.id.btn_finger, R.id.btn_settings, R.id.toolbar_divider, R.id.btn_collapse_arrow)
-            .forEach { id -> contentGroup.findViewById<View>(id)?.visibility = vis }
+        contentGroup.findViewById<View>(R.id.toolbar_scroll_container)?.visibility = vis
+        contentGroup.findViewById<View>(R.id.btn_collapse_arrow)?.let {
+            (it.parent as? View)?.visibility = vis
+        }
 
         contentGroup.setBackgroundResource(if (hideMode) R.drawable.bg_toolbar_collapsed else R.drawable.bg_toolbar)
         contentGroup.post { try { windowManager.updateViewLayout(v, params) } catch (_: Exception) { } }
