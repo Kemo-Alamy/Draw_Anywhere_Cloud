@@ -1,7 +1,5 @@
 package com.drawanywhere.app
 
-import android.widget.HorizontalScrollView
-import android.widget.ScrollView
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.graphics.PixelFormat
@@ -14,7 +12,9 @@ import android.transition.TransitionManager
 import android.transition.TransitionSet
 import android.view.*
 import android.view.animation.DecelerateInterpolator
+import android.widget.HorizontalScrollView
 import android.widget.ImageView
+import android.widget.ScrollView
 import kotlin.math.abs
 
 class ToolbarManager(
@@ -42,9 +42,9 @@ class ToolbarManager(
     private val CLICK_DEBOUNCE_MS = 250L
     private var lastClickTimeByView = mutableMapOf<Int, Long>()
 
-    // ✅ حالة وبيانات تصغير منطقة السحب (مش الشريط كله)
-    private var isScrollCollapsed = false
-    private var scrollFullSize    = 0
+    // ✅ true = منطقة الأدوات متفتحة | false = متقفلة — بس الـ Toggle بسيط بنفس الحركة
+    private var isScrollExpanded = false
+    private var scrollFullSize   = 0
     private var scrollAnimator: ValueAnimator? = null
 
     private val toolIconMap = mapOf(
@@ -116,22 +116,26 @@ class ToolbarManager(
         val layoutId = if (orientation == ToolbarOrientation.HORIZONTAL) R.layout.overlay_toolbar_horizontal else R.layout.overlay_toolbar_vertical
         val view = LayoutInflater.from(service).inflate(layoutId, null)
         toolbarView = view
-        isScrollCollapsed = false
+        isScrollExpanded = false
         scrollFullSize = 0
 
-        // ✅ تفعيل حافة التلاشي الشفافة برمجياً — أضمن من الـ XML وحده على بعض الأجهزة
         val scrollContainer = view.findViewById<View>(R.id.toolbar_scroll_container)
         val fadeLenPx = (service.resources.getDimension(R.dimen.toolbar_fading_edge_length)).toInt()
         when (scrollContainer) {
             is HorizontalScrollView -> {
                 scrollContainer.isHorizontalFadingEdgeEnabled = true
                 scrollContainer.setFadingEdgeLength(fadeLenPx)
+                // ✅ مقفول من البداية — عرض صفر
+                scrollContainer.layoutParams.width = 0
             }
             is ScrollView -> {
                 scrollContainer.isVerticalFadingEdgeEnabled = true
                 scrollContainer.setFadingEdgeLength(fadeLenPx)
+                // ✅ مقفول من البداية — ارتفاع صفر
+                scrollContainer.layoutParams.height = 0
             }
         }
+        scrollContainer?.alpha = 0f
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
@@ -217,7 +221,7 @@ class ToolbarManager(
         }
     }
 
-    // ─── Collapse Arrow — بيصغّر/يكبّر منطقة السحب بس بالملليمتر ────────────────
+    // ─── Collapse Arrow — Toggle بسيط فتح/قفل، شكل السهم ثابت دايماً ───────────
 
     private fun setupCollapseArrow(view: View) {
         val arrowBtn = view.findViewById<ImageView>(R.id.btn_collapse_arrow) ?: return
@@ -226,65 +230,54 @@ class ToolbarManager(
         arrowBtn.setOnClickListener {
             debouncedClick(R.id.btn_collapse_arrow) {
                 resetFadeTimer()
-                isScrollCollapsed = !isScrollCollapsed
-                animateScrollCollapse(view, scrollContainer, arrowBtn, isScrollCollapsed)
+                isScrollExpanded = !isScrollExpanded
+                animateScrollToggle(view, scrollContainer, isScrollExpanded)
             }
         }
     }
 
     /**
-     * ✅ الأنيميشن الأساسي — زي حركة العين بالظبط:
-     * بيحرك عرض (أو ارتفاع) منطقة السحب تدريجياً بين 0 والحجم الكامل عبر ValueAnimator،
-     * مع Fade في الشفافية في نفس الوقت، وكل Frame بيحدّث WindowManager فورياً
-     * فيبقى الانتقال سلس زي السحب الحقيقي — مش قفل/فتح فجائي.
-     * العين والسهم نفسهم بيفضلوا ظاهرين طول الوقت.
+     * ✅ نفس حركة الفتح والقفل بالظبط — مفيش فرق بينهم غير اتجاه الحجم (من 0 للكامل أو العكس)
+     * شكل السهم ثابت طول الوقت (مايتغيرش)، والعين والسهم نفسهم برا منطقة التحريك دي خالص
      */
-    private fun animateScrollCollapse(root: View, scrollContainer: View, arrowBtn: ImageView, collapse: Boolean) {
+    private fun animateScrollToggle(root: View, scrollContainer: View, expand: Boolean) {
         val isH = currentOrientation == ToolbarOrientation.HORIZONTAL
 
         if (scrollFullSize == 0) {
-            scrollFullSize = if (isH) scrollContainer.width else scrollContainer.height
-        }
-        if (scrollFullSize == 0) {
-            // لسه مترسمش بالكامل — نأجل المحاولة لحد ما يترسم
-            scrollContainer.post { animateScrollCollapse(root, scrollContainer, arrowBtn, collapse) }
-            return
+            val inner = if (isH)
+                root.findViewById<View>(R.id.toolbar_scroll_inner)
+            else
+                root.findViewById<View>(R.id.toolbar_scroll_inner)
+            inner?.post {
+                scrollFullSize = if (isH) inner.width else inner.height
+                if (scrollFullSize > 0) animateScrollToggle(root, scrollContainer, expand)
+            }
+            if (scrollFullSize == 0) return
         }
 
         val params = scrollContainer.layoutParams
-        val startSize = if (isH) {
-            if (params.width > 0) params.width else scrollFullSize
-        } else {
-            if (params.height > 0) params.height else scrollFullSize
-        }
-        val endSize = if (collapse) 0 else scrollFullSize
+        val startSize = if (isH) params.width.coerceAtLeast(0) else params.height.coerceAtLeast(0)
+        val endSize = if (expand) scrollFullSize else 0
 
         scrollAnimator?.cancel()
         scrollAnimator = ValueAnimator.ofInt(startSize, endSize).apply {
-            duration = 260L
+            duration = 240L
             interpolator = DecelerateInterpolator(1.3f)
             addUpdateListener { anim ->
                 val size = anim.animatedValue as Int
                 if (isH) params.width = size else params.height = size
                 scrollContainer.layoutParams = params
-                scrollContainer.alpha = (size.toFloat() / scrollFullSize).coerceIn(0f, 1f)
+                scrollContainer.alpha = if (scrollFullSize > 0) (size.toFloat() / scrollFullSize).coerceIn(0f, 1f) else 0f
                 toolbarParams?.let { tp ->
                     try { windowManager.updateViewLayout(root, tp) } catch (_: Exception) { }
                 }
             }
             start()
         }
-
-        arrowBtn.setImageResource(
-            if (isH) {
-                if (collapse) R.drawable.ic_chevron_down else R.drawable.ic_chevron_up
-            } else {
-                if (collapse) R.drawable.ic_chevron_right else R.drawable.ic_chevron_left
-            }
-        )
+        // ✅ شكل السهم ثابت — مفيش setImageResource هنا خالص
     }
 
-    // ─── Toggle Canvas Visibility (Eye) — منفصل تماماً عن السهم ───────────────
+    // ─── Toggle Canvas Visibility (Eye) ───────────────────────────────────────
 
     private fun toggleCanvasVisibility() {
         canvasVisible = !canvasVisible
@@ -296,7 +289,6 @@ class ToolbarManager(
         collapseCanvasHideState(!canvasVisible)
     }
 
-    /** إخفاء كامل الشريط (ماعدا العين) عند إخفاء لوحة الرسم — ميكانيزم مستقل عن السهم */
     private fun collapseCanvasHideState(hideMode: Boolean) {
         val v = toolbarView as? ViewGroup ?: return
         val params = toolbarParams ?: return
@@ -311,9 +303,8 @@ class ToolbarManager(
 
         val vis = if (hideMode) View.GONE else View.VISIBLE
         contentGroup.findViewById<View>(R.id.toolbar_scroll_container)?.visibility = vis
-        contentGroup.findViewById<View>(R.id.btn_collapse_arrow)?.let {
-            (it.parent as? View)?.visibility = vis
-        }
+        val arrow = contentGroup.findViewById<View>(R.id.btn_collapse_arrow)
+        (arrow?.parent as? View)?.visibility = vis
 
         contentGroup.setBackgroundResource(if (hideMode) R.drawable.bg_toolbar_collapsed else R.drawable.bg_toolbar)
         contentGroup.post { try { windowManager.updateViewLayout(v, params) } catch (_: Exception) { } }
