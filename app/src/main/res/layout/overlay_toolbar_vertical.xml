@@ -39,11 +39,32 @@
             android:focusable="true"
             android:contentDescription="@string/cd_btn_hide" />
 
-        <!-- ✅ منطقة قابلة للسحب رأسياً + حافة تلاشي -->
+        <!-- ✅ السهم — متجه لأسفل ثابت، مساحة صغيرة -->
+        <FrameLayout
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="2dp"
+            android:background="@drawable/bg_collapse_pill">
+            <ImageView
+                android:id="@+id/btn_collapse_arrow"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="6dp"
+                android:src="@drawable/ic_chevron_down"
+                android:tint="@color/toolbar_icon_default"
+                android:scaleType="fitCenter"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/cd_btn_collapse" />
+        </FrameLayout>
+
+        <!-- ✅ منطقة الأدوات القابلة للطي -->
         <ScrollView
             android:id="@+id/toolbar_scroll_container"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="0"
             android:scrollbars="none"
             android:overScrollMode="never"
             android:requiresFadingEdge="vertical"
@@ -158,25 +179,6 @@
 
             </LinearLayout>
         </ScrollView>
-
-        <!-- ✅ السهم — دايماً ظاهر -->
-        <FrameLayout
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:layout_marginTop="2dp"
-            android:background="@drawable/bg_collapse_pill">
-            <ImageView
-                android:id="@+id/btn_collapse_arrow"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="6dp"
-                android:src="@drawable/ic_chevron_left"
-                android:tint="@color/toolbar_icon_default"
-                android:scaleType="fitCenter"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="@string/cd_btn_collapse" />
-        </FrameLayout>
 
     </LinearLayout>
 
