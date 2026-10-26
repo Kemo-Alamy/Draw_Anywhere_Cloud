@@ -6,7 +6,6 @@
     android:orientation="vertical"
     android:gravity="center_horizontal">
 
-    <!-- ✅ مقبض السحب العلوي — إشارة بصرية إنه ممكن يتسحب -->
     <View
         android:layout_width="30dp"
         android:layout_height="4dp"
@@ -20,12 +19,13 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="@drawable/bg_toolbar"
-        android:paddingStart="6dp"
-        android:paddingEnd="6dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
         android:paddingTop="4dp"
         android:paddingBottom="4dp"
         android:elevation="8dp">
 
+        <!-- ✅ العين — دايماً ظاهرة، برا منطقة السحب -->
         <ImageView
             android:id="@+id/btn_hide"
             android:layout_width="46dp"
@@ -39,75 +39,95 @@
             android:focusable="true"
             android:contentDescription="@string/cd_btn_hide" />
 
-        <ImageView
-            android:id="@+id/btn_undo"
-            android:layout_width="46dp"
-            android:layout_height="46dp"
-            android:padding="10dp"
-            android:src="@drawable/ic_undo"
-            android:tint="@color/toolbar_icon_default"
-            android:scaleType="fitCenter"
-            android:background="@android:color/transparent"
-            android:clickable="true"
-            android:focusable="true"
-            android:alpha="0.35"
-            android:enabled="false"
-            android:contentDescription="@string/cd_btn_undo" />
+        <!-- ✅ منطقة قابلة للسحب أفقياً — فيها باقي الأدوات + حافة تلاشي شفافة -->
+        <HorizontalScrollView
+            android:id="@+id/toolbar_scroll_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:overScrollMode="never"
+            android:requiresFadingEdge="horizontal"
+            android:fadingEdgeLength="@dimen/toolbar_fading_edge_length">
 
-        <com.drawanywhere.app.ColorDropView
-            android:id="@+id/view_color_dot"
-            android:layout_width="28dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="5dp"
-            android:layout_marginEnd="5dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:contentDescription="@string/cd_color_dot" />
+            <LinearLayout
+                android:id="@+id/toolbar_scroll_inner"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
-        <ImageView
-            android:id="@+id/btn_tools"
-            android:layout_width="46dp"
-            android:layout_height="46dp"
-            android:padding="10dp"
-            android:src="@drawable/ic_pen"
-            android:tint="@color/toolbar_icon_default"
-            android:scaleType="fitCenter"
-            android:background="@android:color/transparent"
-            android:clickable="true"
-            android:focusable="true"
-            android:contentDescription="@string/cd_btn_tools" />
+                <ImageView
+                    android:id="@+id/btn_undo"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_undo"
+                    android:tint="@color/toolbar_icon_default"
+                    android:scaleType="fitCenter"
+                    android:background="@android:color/transparent"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:alpha="0.35"
+                    android:enabled="false"
+                    android:contentDescription="@string/cd_btn_undo" />
 
-        <ImageView
-            android:id="@+id/btn_finger"
-            android:layout_width="46dp"
-            android:layout_height="46dp"
-            android:padding="10dp"
-            android:src="@drawable/ic_finger"
-            android:tint="@color/toolbar_icon_default"
-            android:scaleType="fitCenter"
-            android:background="@android:color/transparent"
-            android:clickable="true"
-            android:focusable="true"
-            android:contentDescription="@string/cd_btn_finger" />
+                <com.drawanywhere.app.ColorDropView
+                    android:id="@+id/view_color_dot"
+                    android:layout_width="28dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="5dp"
+                    android:layout_marginEnd="5dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="@string/cd_color_dot" />
 
-        <ImageView
-            android:id="@+id/btn_settings"
-            android:layout_width="46dp"
-            android:layout_height="46dp"
-            android:padding="10dp"
-            android:src="@drawable/ic_settings"
-            android:tint="@color/toolbar_icon_default"
-            android:scaleType="fitCenter"
-            android:background="@android:color/transparent"
-            android:clickable="true"
-            android:focusable="true"
-            android:contentDescription="@string/cd_btn_settings" />
+                <ImageView
+                    android:id="@+id/btn_tools"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_pen"
+                    android:tint="@color/toolbar_icon_default"
+                    android:scaleType="fitCenter"
+                    android:background="@android:color/transparent"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="@string/cd_btn_tools" />
 
-        <!-- ✅ زرار السهم — يصغّر/يكبّر الشريط الأفقي -->
+                <ImageView
+                    android:id="@+id/btn_finger"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_finger"
+                    android:tint="@color/toolbar_icon_default"
+                    android:scaleType="fitCenter"
+                    android:background="@android:color/transparent"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="@string/cd_btn_finger" />
+
+                <ImageView
+                    android:id="@+id/btn_settings"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_settings"
+                    android:tint="@color/toolbar_icon_default"
+                    android:scaleType="fitCenter"
+                    android:background="@android:color/transparent"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="@string/cd_btn_settings" />
+
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- ✅ السهم — دايماً ظاهر، بيصغّر/يكبّر منطقة السحب بس، مش بيقفلها خالص -->
         <FrameLayout
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="2dp"
             android:background="@drawable/bg_collapse_pill">
             <ImageView
                 android:id="@+id/btn_collapse_arrow"
