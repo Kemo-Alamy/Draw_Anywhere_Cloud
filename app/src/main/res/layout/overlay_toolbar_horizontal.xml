@@ -25,7 +25,7 @@
         android:paddingBottom="4dp"
         android:elevation="8dp">
 
-        <!-- ✅ العين — دايماً ظاهرة -->
+        <!-- ✅ العين — دايماً ظاهرة، منطقتها هي الحد اللي الـ Fade بيبدأ منه -->
         <ImageView
             android:id="@+id/btn_hide"
             android:layout_width="46dp"
@@ -39,33 +39,60 @@
             android:focusable="true"
             android:contentDescription="@string/cd_btn_hide" />
 
-        <!-- ✅ السهم — صغير جداً بس، متجه لليمين ثابت، بياخد مساحة ثابتة صغيرة مش بتكبر ولا بتصغر -->
-        <FrameLayout
+        <!-- ✅ Core — دايماً ظاهرة، ثابتة، مش بتتقفل أبداً -->
+        <ImageView
+            android:id="@+id/btn_undo"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:padding="10dp"
+            android:src="@drawable/ic_undo"
+            android:tint="@color/toolbar_icon_default"
+            android:scaleType="fitCenter"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:focusable="true"
+            android:alpha="0.35"
+            android:enabled="false"
+            android:contentDescription="@string/cd_btn_undo" />
+
+        <com.drawanywhere.app.ColorDropView
+            android:id="@+id/view_color_dot"
             android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="5dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/cd_color_dot" />
+
+        <ImageView
+            android:id="@+id/btn_tools"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:padding="10dp"
+            android:src="@drawable/ic_pen"
+            android:tint="@color/toolbar_icon_default"
+            android:scaleType="fitCenter"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/cd_btn_tools" />
+
+        <!-- ✅ فاصل — بيظهر بس لما الـ Extra تكون متفتحة -->
+        <View
+            android:id="@+id/toolbar_divider"
+            android:layout_width="1dp"
+            android:layout_height="26dp"
+            android:background="@color/toolbar_divider"
             android:layout_marginStart="2dp"
             android:layout_marginEnd="2dp"
-            android:background="@drawable/bg_collapse_pill">
-            <ImageView
-                android:id="@+id/btn_collapse_arrow"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="6dp"
-                android:src="@drawable/ic_chevron_right"
-                android:tint="@color/toolbar_icon_default"
-                android:scaleType="fitCenter"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="@string/cd_btn_collapse" />
-        </FrameLayout>
+            android:visibility="gone" />
 
-        <!-- ✅ منطقة الأدوات القابلة للطي — عرض أقصى محدود (مش wrap_content مفتوح)
-             وده اللي بيضمن ظهور Fade عند الحافة لو الأدوات أكتر من المساحة المتاحة -->
+        <!-- ✅ منطقة Extra القابلة للطي — زرار الصورة والإصبع والإعدادات هنا، وبتتقفل جزء بس مش كل الشريط -->
         <HorizontalScrollView
             android:id="@+id/toolbar_scroll_container"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="0"
             android:scrollbars="none"
             android:overScrollMode="never"
             android:requiresFadingEdge="horizontal"
@@ -79,21 +106,6 @@
                 android:gravity="center_vertical">
 
                 <ImageView
-                    android:id="@+id/btn_undo"
-                    android:layout_width="46dp"
-                    android:layout_height="46dp"
-                    android:padding="10dp"
-                    android:src="@drawable/ic_undo"
-                    android:tint="@color/toolbar_icon_default"
-                    android:scaleType="fitCenter"
-                    android:background="@android:color/transparent"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:alpha="0.35"
-                    android:enabled="false"
-                    android:contentDescription="@string/cd_btn_undo" />
-
-                <ImageView
                     android:id="@+id/btn_add_image"
                     android:layout_width="46dp"
                     android:layout_height="46dp"
@@ -105,29 +117,6 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:contentDescription="@string/cd_btn_image" />
-
-                <com.drawanywhere.app.ColorDropView
-                    android:id="@+id/view_color_dot"
-                    android:layout_width="28dp"
-                    android:layout_height="32dp"
-                    android:layout_marginStart="5dp"
-                    android:layout_marginEnd="5dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:contentDescription="@string/cd_color_dot" />
-
-                <ImageView
-                    android:id="@+id/btn_tools"
-                    android:layout_width="46dp"
-                    android:layout_height="46dp"
-                    android:padding="10dp"
-                    android:src="@drawable/ic_pen"
-                    android:tint="@color/toolbar_icon_default"
-                    android:scaleType="fitCenter"
-                    android:background="@android:color/transparent"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:contentDescription="@string/cd_btn_tools" />
 
                 <ImageView
                     android:id="@+id/btn_finger"
@@ -157,6 +146,25 @@
 
             </LinearLayout>
         </HorizontalScrollView>
+
+        <!-- ✅ السهم — اتجاهه بيتغير حسب الحالة: → لما مقفول، ← صغير لما مفتوح -->
+        <FrameLayout
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/bg_collapse_pill">
+            <ImageView
+                android:id="@+id/btn_collapse_arrow"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="6dp"
+                android:src="@drawable/ic_chevron_right"
+                android:tint="@color/toolbar_icon_default"
+                android:scaleType="fitCenter"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/cd_btn_collapse" />
+        </FrameLayout>
 
     </LinearLayout>
 
