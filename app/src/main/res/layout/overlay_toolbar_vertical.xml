@@ -39,7 +39,6 @@
             android:focusable="true"
             android:contentDescription="@string/cd_btn_hide" />
 
-        <!-- ✅ Core — دايماً ظاهرة -->
         <ImageView
             android:id="@+id/btn_undo"
             android:layout_width="50dp"
@@ -93,7 +92,6 @@
             android:focusable="true"
             android:contentDescription="@string/cd_color_dot" />
 
-        <!-- ✅ فاصل — بيظهر بس لما الـ Extra متفتحة -->
         <View
             android:id="@+id/toolbar_divider"
             android:layout_width="26dp"
@@ -103,7 +101,6 @@
             android:layout_marginBottom="2dp"
             android:visibility="gone" />
 
-        <!-- ✅ منطقة Extra القابلة للطي -->
         <ScrollView
             android:id="@+id/toolbar_scroll_container"
             android:layout_width="wrap_content"
@@ -162,8 +159,9 @@
             </LinearLayout>
         </ScrollView>
 
-        <!-- ✅ السهم — اتجاهه بيتغير: ↓ لما مقفول، ↑ صغير لما مفتوح -->
+        <!-- ✅ أضفنا id للحاوية -->
         <FrameLayout
+            android:id="@+id/btn_collapse_arrow_container"
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:layout_marginTop="2dp"
