@@ -42,9 +42,9 @@ class ToolbarManager(
     private val CLICK_DEBOUNCE_MS = 250L
     private var lastClickTimeByView = mutableMapOf<Int, Long>()
 
-    // ✅ true = منطقة الأدوات متفتحة | false = متقفلة — بس الـ Toggle بسيط بنفس الحركة
-    private var isScrollExpanded = false
-    private var scrollFullSize   = 0
+    // ✅ false = منطقة الـ Extra مقفولة (الحالة الابتدائية) | true = مفتوحة
+    private var isExtraExpanded = false
+    private var scrollFullSize  = 0
     private var scrollAnimator: ValueAnimator? = null
 
     private val toolIconMap = mapOf(
@@ -116,7 +116,7 @@ class ToolbarManager(
         val layoutId = if (orientation == ToolbarOrientation.HORIZONTAL) R.layout.overlay_toolbar_horizontal else R.layout.overlay_toolbar_vertical
         val view = LayoutInflater.from(service).inflate(layoutId, null)
         toolbarView = view
-        isScrollExpanded = false
+        isExtraExpanded = false
         scrollFullSize = 0
 
         val scrollContainer = view.findViewById<View>(R.id.toolbar_scroll_container)
@@ -125,17 +125,20 @@ class ToolbarManager(
             is HorizontalScrollView -> {
                 scrollContainer.isHorizontalFadingEdgeEnabled = true
                 scrollContainer.setFadingEdgeLength(fadeLenPx)
-                // ✅ مقفول من البداية — عرض صفر
-                scrollContainer.layoutParams.width = 0
             }
             is ScrollView -> {
                 scrollContainer.isVerticalFadingEdgeEnabled = true
                 scrollContainer.setFadingEdgeLength(fadeLenPx)
-                // ✅ مقفول من البداية — ارتفاع صفر
-                scrollContainer.layoutParams.height = 0
             }
         }
+        // ✅ الحالة الابتدائية: Extra مقفولة بالكامل (حجمها صفر) وشفافة
         scrollContainer?.alpha = 0f
+        scrollContainer?.post {
+            val lp = scrollContainer.layoutParams
+            if (orientation == ToolbarOrientation.HORIZONTAL) lp.width = 0 else lp.height = 0
+            scrollContainer.layoutParams = lp
+        }
+        view.findViewById<View>(R.id.toolbar_divider)?.visibility = View.GONE
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
@@ -146,6 +149,9 @@ class ToolbarManager(
         toolbarParams = params
 
         view.findViewById<ImageView>(R.id.btn_tools)?.setImageResource(toolIconMap[drawingCanvas.currentTool] ?: R.drawable.ic_pen)
+
+        // ✅ تحديد شكل السهم الافتراضي حسب الاتجاه (↓ عمودي / → أفقي)
+        updateArrowIcon(view, expanded = false)
 
         setupButtons(view)
         setupDrag(view, params)
@@ -221,7 +227,7 @@ class ToolbarManager(
         }
     }
 
-    // ─── Collapse Arrow — Toggle بسيط فتح/قفل، شكل السهم ثابت دايماً ───────────
+    // ─── Collapse Arrow ─────────────────────────────────────────────────────────
 
     private fun setupCollapseArrow(view: View) {
         val arrowBtn = view.findViewById<ImageView>(R.id.btn_collapse_arrow) ?: return
@@ -230,27 +236,46 @@ class ToolbarManager(
         arrowBtn.setOnClickListener {
             debouncedClick(R.id.btn_collapse_arrow) {
                 resetFadeTimer()
-                isScrollExpanded = !isScrollExpanded
-                animateScrollToggle(view, scrollContainer, isScrollExpanded)
+                isExtraExpanded = !isExtraExpanded
+                animateExtraToggle(view, scrollContainer, isExtraExpanded)
             }
         }
     }
 
     /**
-     * ✅ نفس حركة الفتح والقفل بالظبط — مفيش فرق بينهم غير اتجاه الحجم (من 0 للكامل أو العكس)
-     * شكل السهم ثابت طول الوقت (مايتغيرش)، والعين والسهم نفسهم برا منطقة التحريك دي خالص
+     * ✅ اتجاه السهم بيتغير ديناميكياً حسب الحالة:
+     * عمودي: مقفول = ↓ (ic_chevron_down) | مفتوح = ↑ صغير (ic_chevron_up_small)
+     * أفقي:  مقفول = → (ic_chevron_right) | مفتوح = ← صغير (ic_chevron_left_small)
      */
-    private fun animateScrollToggle(root: View, scrollContainer: View, expand: Boolean) {
+    private fun updateArrowIcon(view: View, expanded: Boolean) {
+        val arrowBtn = view.findViewById<ImageView>(R.id.btn_collapse_arrow) ?: return
         val isH = currentOrientation == ToolbarOrientation.HORIZONTAL
+        arrowBtn.setImageResource(
+            if (isH) {
+                if (expanded) R.drawable.ic_chevron_left_small else R.drawable.ic_chevron_right
+            } else {
+                if (expanded) R.drawable.ic_chevron_up_small else R.drawable.ic_chevron_down
+            }
+        )
+    }
+
+    /**
+     * ✅ بتحرك بس حجم منطقة Extra (مش الشريط كله) من 0 للحجم الكامل أو العكس
+     * الفاصل بيظهر مع بداية الفتح ويختفي مع اكتمال القفل
+     * اتجاه السهم بيتقلب فوراً عند الضغط عشان يعكس النية الجديدة
+     */
+    private fun animateExtraToggle(root: View, scrollContainer: View, expand: Boolean) {
+        val isH = currentOrientation == ToolbarOrientation.HORIZONTAL
+        val divider = root.findViewById<View>(R.id.toolbar_divider)
+
+        updateArrowIcon(root, expand)
+        if (expand) divider?.visibility = View.VISIBLE
 
         if (scrollFullSize == 0) {
-            val inner = if (isH)
-                root.findViewById<View>(R.id.toolbar_scroll_inner)
-            else
-                root.findViewById<View>(R.id.toolbar_scroll_inner)
+            val inner = root.findViewById<View>(R.id.toolbar_scroll_inner)
             inner?.post {
                 scrollFullSize = if (isH) inner.width else inner.height
-                if (scrollFullSize > 0) animateScrollToggle(root, scrollContainer, expand)
+                if (scrollFullSize > 0) animateExtraToggle(root, scrollContainer, expand)
             }
             if (scrollFullSize == 0) return
         }
@@ -272,9 +297,18 @@ class ToolbarManager(
                     try { windowManager.updateViewLayout(root, tp) } catch (_: Exception) { }
                 }
             }
+            if (!expand) {
+                doOnEndCompat { divider?.visibility = View.GONE }
+            }
             start()
         }
-        // ✅ شكل السهم ثابت — مفيش setImageResource هنا خالص
+    }
+
+    /** مساعد صغير لأن doOnEnd مش متاحة مباشرة من غير core-ktx animation */
+    private fun ValueAnimator.doOnEndCompat(action: () -> Unit) {
+        addListener(object : android.animation.AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: android.animation.Animator) { action() }
+        })
     }
 
     // ─── Toggle Canvas Visibility (Eye) ───────────────────────────────────────
@@ -302,7 +336,9 @@ class ToolbarManager(
         TransitionManager.beginDelayedTransition(contentGroup, transition)
 
         val vis = if (hideMode) View.GONE else View.VISIBLE
-        contentGroup.findViewById<View>(R.id.toolbar_scroll_container)?.visibility = vis
+        listOf(R.id.btn_undo, R.id.view_color_dot, R.id.btn_tools, R.id.toolbar_scroll_container).forEach { id ->
+            contentGroup.findViewById<View>(id)?.visibility = vis
+        }
         val arrow = contentGroup.findViewById<View>(R.id.btn_collapse_arrow)
         (arrow?.parent as? View)?.visibility = vis
 
