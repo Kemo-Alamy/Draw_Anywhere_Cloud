@@ -42,7 +42,6 @@ class ToolbarManager(
     private val CLICK_DEBOUNCE_MS = 250L
     private var lastClickTimeByView = mutableMapOf<Int, Long>()
 
-    // ✅ false = منطقة الـ Extra مقفولة (الحالة الابتدائية) | true = مفتوحة
     private var isExtraExpanded = false
     private var scrollFullSize  = 0
     private var scrollAnimator: ValueAnimator? = null
@@ -131,7 +130,6 @@ class ToolbarManager(
                 scrollContainer.setFadingEdgeLength(fadeLenPx)
             }
         }
-        // ✅ الحالة الابتدائية: Extra مقفولة بالكامل (حجمها صفر) وشفافة
         scrollContainer?.alpha = 0f
         scrollContainer?.post {
             val lp = scrollContainer.layoutParams
@@ -150,7 +148,6 @@ class ToolbarManager(
 
         view.findViewById<ImageView>(R.id.btn_tools)?.setImageResource(toolIconMap[drawingCanvas.currentTool] ?: R.drawable.ic_pen)
 
-        // ✅ تحديد شكل السهم الافتراضي حسب الاتجاه (↓ عمودي / → أفقي)
         updateArrowIcon(view, expanded = false)
 
         setupButtons(view)
@@ -242,11 +239,6 @@ class ToolbarManager(
         }
     }
 
-    /**
-     * ✅ اتجاه السهم بيتغير ديناميكياً حسب الحالة:
-     * عمودي: مقفول = ↓ (ic_chevron_down) | مفتوح = ↑ صغير (ic_chevron_up_small)
-     * أفقي:  مقفول = → (ic_chevron_right) | مفتوح = ← صغير (ic_chevron_left_small)
-     */
     private fun updateArrowIcon(view: View, expanded: Boolean) {
         val arrowBtn = view.findViewById<ImageView>(R.id.btn_collapse_arrow) ?: return
         val isH = currentOrientation == ToolbarOrientation.HORIZONTAL
@@ -259,11 +251,6 @@ class ToolbarManager(
         )
     }
 
-    /**
-     * ✅ بتحرك بس حجم منطقة Extra (مش الشريط كله) من 0 للحجم الكامل أو العكس
-     * الفاصل بيظهر مع بداية الفتح ويختفي مع اكتمال القفل
-     * اتجاه السهم بيتقلب فوراً عند الضغط عشان يعكس النية الجديدة
-     */
     private fun animateExtraToggle(root: View, scrollContainer: View, expand: Boolean) {
         val isH = currentOrientation == ToolbarOrientation.HORIZONTAL
         val divider = root.findViewById<View>(R.id.toolbar_divider)
@@ -304,7 +291,6 @@ class ToolbarManager(
         }
     }
 
-    /** مساعد صغير لأن doOnEnd مش متاحة مباشرة من غير core-ktx animation */
     private fun ValueAnimator.doOnEndCompat(action: () -> Unit) {
         addListener(object : android.animation.AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: android.animation.Animator) { action() }
@@ -323,6 +309,11 @@ class ToolbarManager(
         collapseCanvasHideState(!canvasVisible)
     }
 
+    /**
+     * ✅ الإصلاح الأساسي — لما العين تتلم، بنخفي كل حاجة تاني بما فيهم
+     * الفاصل وحاوية السهم بالكامل (FrameLayout)، مش بس الأيقونة اللي جواها.
+     * كده العين بتفضل Pill دائرية نضيفة من غير أي عنصر تاني جنبها.
+     */
     private fun collapseCanvasHideState(hideMode: Boolean) {
         val v = toolbarView as? ViewGroup ?: return
         val params = toolbarParams ?: return
@@ -336,11 +327,15 @@ class ToolbarManager(
         TransitionManager.beginDelayedTransition(contentGroup, transition)
 
         val vis = if (hideMode) View.GONE else View.VISIBLE
-        listOf(R.id.btn_undo, R.id.view_color_dot, R.id.btn_tools, R.id.toolbar_scroll_container).forEach { id ->
-            contentGroup.findViewById<View>(id)?.visibility = vis
-        }
-        val arrow = contentGroup.findViewById<View>(R.id.btn_collapse_arrow)
-        (arrow?.parent as? View)?.visibility = vis
+        listOf(
+            R.id.btn_undo,
+            R.id.btn_clear,
+            R.id.view_color_dot,
+            R.id.btn_tools,
+            R.id.toolbar_divider,
+            R.id.toolbar_scroll_container,
+            R.id.btn_collapse_arrow_container
+        ).forEach { id -> contentGroup.findViewById<View>(id)?.visibility = vis }
 
         contentGroup.setBackgroundResource(if (hideMode) R.drawable.bg_toolbar_collapsed else R.drawable.bg_toolbar)
         contentGroup.post { try { windowManager.updateViewLayout(v, params) } catch (_: Exception) { } }
