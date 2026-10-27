@@ -25,7 +25,7 @@
         android:paddingBottom="4dp"
         android:elevation="8dp">
 
-        <!-- ✅ العين — دايماً ظاهرة، منطقتها هي الحد اللي الـ Fade بيبدأ منه -->
+        <!-- ✅ العين — دايماً ظاهرة -->
         <ImageView
             android:id="@+id/btn_hide"
             android:layout_width="46dp"
@@ -39,7 +39,7 @@
             android:focusable="true"
             android:contentDescription="@string/cd_btn_hide" />
 
-        <!-- ✅ Core — دايماً ظاهرة، ثابتة، مش بتتقفل أبداً -->
+        <!-- ✅ Core -->
         <ImageView
             android:id="@+id/btn_undo"
             android:layout_width="46dp"
@@ -78,7 +78,6 @@
             android:focusable="true"
             android:contentDescription="@string/cd_btn_tools" />
 
-        <!-- ✅ فاصل — بيظهر بس لما الـ Extra تكون متفتحة -->
         <View
             android:id="@+id/toolbar_divider"
             android:layout_width="1dp"
@@ -88,7 +87,6 @@
             android:layout_marginEnd="2dp"
             android:visibility="gone" />
 
-        <!-- ✅ منطقة Extra القابلة للطي — زرار الصورة والإصبع والإعدادات هنا، وبتتقفل جزء بس مش كل الشريط -->
         <HorizontalScrollView
             android:id="@+id/toolbar_scroll_container"
             android:layout_width="wrap_content"
@@ -147,8 +145,9 @@
             </LinearLayout>
         </HorizontalScrollView>
 
-        <!-- ✅ السهم — اتجاهه بيتغير حسب الحالة: → لما مقفول، ← صغير لما مفتوح -->
+        <!-- ✅ أضفنا id للحاوية نفسها عشان نقدر نخفيها بالكامل لما العين تتلم -->
         <FrameLayout
+            android:id="@+id/btn_collapse_arrow_container"
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:layout_marginStart="2dp"
