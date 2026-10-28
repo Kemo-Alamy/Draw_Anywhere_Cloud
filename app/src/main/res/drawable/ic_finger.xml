@@ -1,53 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- أيقونة عصرية: إصبع يلمس نقطة + موجتين ارتداد تدلان على اللمس النشط -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-
-    <!-- جسم الإصبع -->
-    <path
-        android:pathData="M12,21C8.5,21 7,18.5 7,16V10.5C7,9.67 7.67,9 8.5,9C9.33,9 10,9.67 10,10.5V13"
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.7"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
-
-    <path
-        android:pathData="M10,13V5.5C10,4.67 10.67,4 11.5,4C12.33,4 13,4.67 13,5.5V13"
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.7"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
-
-    <path
-        android:pathData="M13,13V7C13,6.17 13.67,5.5 14.5,5.5C15.33,5.5 16,6.17 16,7V13"
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.7"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
-
-    <!-- نقطة اللمس تحت الإصبع -->
-    <path
-        android:pathData="M12,21.5m-1.3,0a1.3,1.3 0,1 1,2.6 0a1.3,1.3 0,1 1,-2.6 0"
-        android:fillColor="#FFFFFFFF" />
-
-    <!-- موجة ارتداد يمين -->
-    <path
-        android:pathData="M18,16C18.65,16.9 19,17.9 19,19"
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.3"
-        android:strokeLineCap="round" />
-
-    <!-- موجة ارتداد يسار -->
-    <path
-        android:pathData="M6,16C5.35,16.9 5,17.9 5,19"
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.3"
-        android:strokeLineCap="round" />
-
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="640"
+    android:viewportHeight="640">
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M352,96C352,78.3 337.7,64 320,64C302.3,64 288,78.3 288,96L288,304C288,312.8 280.8,320 272,320C263.2,320 256,312.8 256,304L256,128C256,110.3 241.7,96 224,96C206.3,96 192,110.3 192,128L192,400C192,401.5 192,403.1 192.1,404.6L131.6,347C115.6,331.8 90.3,332.4 75,348.4C59.7,364.4 60.4,389.7 76.4,405L188.8,512C231.9,553.1 289.2,576 348.8,576L368,576C465.2,576 544,497.2 544,400L544,192C544,174.3 529.7,160 512,160C494.3,160 480,174.3 480,192L480,304C480,312.8 472.8,320 464,320C455.2,320 448,312.8 448,304L448,128C448,110.3 433.7,96 416,96C398.3,96 384,110.3 384,128L384,304C384,312.8 376.8,320 368,320C359.2,320 352,312.8 352,304L352,96Z"/>
 </vector>
