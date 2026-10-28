@@ -1,28 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
-    أيقونة Highlighter — قلم تظليل بسطح مربع عريض
--->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-
-    <!-- جسم القلم -->
-    <path
-        android:pathData="M6,14L14,6L18,10L10,18H6V14Z"
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.8"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
-
-    <!-- خط التظليل تحت الكتابة -->
-    <path
-        android:pathData="M4,20H14"
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="3"
-        android:strokeLineCap="round" />
-
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M80,960L80,800L880,800L880,960L80,960ZM584,480L480,376L320,536L423,640L584,480ZM537,320L640,423L800,264L696,160L537,320ZM453,291L669,507L480,697Q456,721 423.5,721Q391,721 367,697L340,720L140,720L266,595Q242,571 241,537.5Q240,504 264,480L453,291ZM453,291L640,104Q664,80 696.5,80Q729,80 753,104L857,207Q881,231 881,263.5Q881,296 857,320L669,507L453,291Z"/>
 </vector>
