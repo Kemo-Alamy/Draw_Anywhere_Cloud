@@ -1,20 +1,16 @@
 package com.drawanywhere.app
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
-import android.transition.Fade
-import android.transition.TransitionManager
-import android.transition.TransitionSet
 import android.view.*
 import android.view.animation.DecelerateInterpolator
-import android.widget.HorizontalScrollView
 import android.widget.ImageView
-import android.widget.ScrollView
 import kotlin.math.abs
 
 class ToolbarManager(
@@ -39,12 +35,7 @@ class ToolbarManager(
     private var isDragging     = false
     private val DRAG_THRESHOLD = 10f
 
-    private val CLICK_DEBOUNCE_MS = 250L
-    private var lastClickTimeByView = mutableMapOf<Int, Long>()
-
-    private var isExtraExpanded = false
-    private var scrollFullSize  = 0
-    private var scrollAnimator: ValueAnimator? = null
+    private var eyeAnimator: ValueAnimator? = null
 
     private val toolIconMap = mapOf(
         DrawingTool.PEN           to R.drawable.ic_pen,
@@ -61,22 +52,17 @@ class ToolbarManager(
     )
 
     private var hasContent = false
-    private var currentOrientation = ToolbarOrientation.VERTICAL
-
-    // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     fun init(orientation: ToolbarOrientation) = inflate(orientation)
 
     fun destroy() {
         fadeHandler.removeCallbacksAndMessages(null)
-        scrollAnimator?.cancel()
+        eyeAnimator?.cancel()
         try { toolbarView?.let { windowManager.removeView(it) } } catch (_: Exception) { }
         toolbarView = null; toolbarParams = null
     }
 
     fun changeOrientation(orientation: ToolbarOrientation) { destroy(); inflate(orientation) }
-
-    // ─── Public Sync ──────────────────────────────────────────────────────────
 
     fun updateColorDot(color: Int) {
         toolbarView?.findViewById<ColorDropView>(R.id.view_color_dot)?.setColor(color)
@@ -108,35 +94,11 @@ class ToolbarManager(
         toolbarView?.findViewById<ImageView>(R.id.btn_tools)?.setImageResource(iconRes)
     }
 
-    // ─── Inflate ──────────────────────────────────────────────────────────────
-
     private fun inflate(orientation: ToolbarOrientation) {
-        currentOrientation = orientation
-        val layoutId = if (orientation == ToolbarOrientation.HORIZONTAL) R.layout.overlay_toolbar_horizontal else R.layout.overlay_toolbar_vertical
+        val layoutId = if (orientation == ToolbarOrientation.HORIZONTAL)
+            R.layout.overlay_toolbar_horizontal else R.layout.overlay_toolbar_vertical
         val view = LayoutInflater.from(service).inflate(layoutId, null)
         toolbarView = view
-        isExtraExpanded = false
-        scrollFullSize = 0
-
-        val scrollContainer = view.findViewById<View>(R.id.toolbar_scroll_container)
-        val fadeLenPx = (service.resources.getDimension(R.dimen.toolbar_fading_edge_length)).toInt()
-        when (scrollContainer) {
-            is HorizontalScrollView -> {
-                scrollContainer.isHorizontalFadingEdgeEnabled = true
-                scrollContainer.setFadingEdgeLength(fadeLenPx)
-            }
-            is ScrollView -> {
-                scrollContainer.isVerticalFadingEdgeEnabled = true
-                scrollContainer.setFadingEdgeLength(fadeLenPx)
-            }
-        }
-        scrollContainer?.alpha = 0f
-        scrollContainer?.post {
-            val lp = scrollContainer.layoutParams
-            if (orientation == ToolbarOrientation.HORIZONTAL) lp.width = 0 else lp.height = 0
-            scrollContainer.layoutParams = lp
-        }
-        view.findViewById<View>(R.id.toolbar_divider)?.visibility = View.GONE
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
@@ -146,13 +108,12 @@ class ToolbarManager(
         ).apply { gravity = Gravity.TOP or Gravity.START; x = 30; y = 80 }
         toolbarParams = params
 
-        view.findViewById<ImageView>(R.id.btn_tools)?.setImageResource(toolIconMap[drawingCanvas.currentTool] ?: R.drawable.ic_pen)
-
-        updateArrowIcon(view, expanded = false)
+        view.findViewById<ImageView>(R.id.btn_tools)?.setImageResource(
+            toolIconMap[drawingCanvas.currentTool] ?: R.drawable.ic_pen
+        )
 
         setupButtons(view)
         setupDrag(view, params)
-        setupCollapseArrow(view)
         scheduleIdleFade()
         windowManager.addView(view, params)
 
@@ -161,187 +122,155 @@ class ToolbarManager(
         updateContentState(hasContent)
     }
 
-    // ─── Debounced Click Helper ─────────────────────────────────────────────────
-
-    private fun debouncedClick(viewId: Int, action: () -> Unit) {
-        val now = SystemClock.elapsedRealtime()
-        val last = lastClickTimeByView[viewId] ?: 0L
-        if (now - last < CLICK_DEBOUNCE_MS) return
-        lastClickTimeByView[viewId] = now
-        action()
-    }
-
-    // ─── Buttons ──────────────────────────────────────────────────────────────
-
     private fun setupButtons(view: View) {
 
         view.findViewById<ImageView>(R.id.btn_hide)?.setOnClickListener {
-            debouncedClick(R.id.btn_hide) { resetFadeTimer(); toggleCanvasVisibility() }
+            resetFadeTimer(); toggleCanvasVisibility()
         }
 
         view.findViewById<ImageView>(R.id.btn_undo)?.setOnClickListener {
             if (!hasContent) return@setOnClickListener
-            debouncedClick(R.id.btn_undo) { resetFadeTimer(); drawingCanvas.undo() }
+            resetFadeTimer(); drawingCanvas.undo()
+        }
+
+        // ✅ زرار الـ Redo
+        val btnRedo = view.findViewById<ImageView>(R.id.btn_redo)
+        btnRedo?.alpha = 0.35f
+        btnRedo?.isEnabled = false
+        btnRedo?.setOnClickListener {
+            resetFadeTimer(); drawingCanvas.redo()
+        }
+        drawingCanvas.onRedoStateChanged = { hasRedo ->
+            view.post {
+                btnRedo?.animate()?.alpha(if (hasRedo) 1f else 0.35f)?.setDuration(150L)?.start()
+                btnRedo?.isEnabled = hasRedo
+            }
         }
 
         view.findViewById<ImageView>(R.id.btn_clear)?.setOnClickListener {
             if (!hasContent) return@setOnClickListener
-            debouncedClick(R.id.btn_clear) { resetFadeTimer(); drawingCanvas.clearAll() }
+            resetFadeTimer(); drawingCanvas.clearAll()
         }
 
         view.findViewById<View>(R.id.btn_add_image)?.setOnClickListener {
-            debouncedClick(R.id.btn_add_image) {
-                resetFadeTimer(); panelManager.dismissAll(); service.launchImagePicker()
-            }
+            resetFadeTimer(); panelManager.dismissAll()
+            service.launchImagePicker()
         }
 
-        view.findViewById<View>(R.id.btn_tools)?.setOnClickListener {
-            debouncedClick(R.id.btn_tools) { resetFadeTimer(); panelManager.toggleToolsPanel() }
-        }
-
-        view.findViewById<View>(R.id.btn_tools)?.setOnLongClickListener {
-            resetFadeTimer()
-            it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-            panelManager.togglePenNibsPopup()
-            true
-        }
+        attachToolsButtonGestures(view)
 
         view.findViewById<View>(R.id.view_color_dot)?.setOnClickListener {
-            debouncedClick(R.id.view_color_dot) { resetFadeTimer(); panelManager.toggleColorPanel() }
+            resetFadeTimer(); panelManager.toggleColorPanel()
         }
 
         view.findViewById<ImageView>(R.id.btn_finger)?.setOnClickListener {
-            debouncedClick(R.id.btn_finger) {
-                resetFadeTimer()
-                val newState = !service.appPreferences.fingerDrawing
-                service.appPreferences.fingerDrawing = newState
-                service.refreshCanvasTouchMode()
-            }
+            resetFadeTimer()
+            val newState = !service.appPreferences.fingerDrawing
+            service.appPreferences.fingerDrawing = newState
+            service.refreshCanvasTouchMode()
         }
 
         view.findViewById<View>(R.id.btn_settings)?.setOnClickListener {
-            debouncedClick(R.id.btn_settings) { resetFadeTimer(); panelManager.toggleSettingsPanel() }
+            resetFadeTimer(); panelManager.toggleSettingsPanel()
         }
     }
 
-    // ─── Collapse Arrow ─────────────────────────────────────────────────────────
+    private fun attachToolsButtonGestures(view: View) {
+        val btn = view.findViewById<View>(R.id.btn_tools) ?: return
+        val touchSlop = ViewConfiguration.get(service).scaledTouchSlop
+        var pressDownX = 0f; var pressDownY = 0f
+        var longPressArmed = false; var longPressFired = false
+        val LONG_PRESS_MS = 3000L
 
-    private fun setupCollapseArrow(view: View) {
-        val arrowBtn = view.findViewById<ImageView>(R.id.btn_collapse_arrow) ?: return
-        val scrollContainer = view.findViewById<View>(R.id.toolbar_scroll_container) ?: return
-
-        arrowBtn.setOnClickListener {
-            debouncedClick(R.id.btn_collapse_arrow) {
-                resetFadeTimer()
-                isExtraExpanded = !isExtraExpanded
-                animateExtraToggle(view, scrollContainer, isExtraExpanded)
-            }
-        }
-    }
-
-    private fun updateArrowIcon(view: View, expanded: Boolean) {
-        val arrowBtn = view.findViewById<ImageView>(R.id.btn_collapse_arrow) ?: return
-        val isH = currentOrientation == ToolbarOrientation.HORIZONTAL
-        arrowBtn.setImageResource(
-            if (isH) {
-                if (expanded) R.drawable.ic_chevron_left_small else R.drawable.ic_chevron_right
-            } else {
-                if (expanded) R.drawable.ic_chevron_up_small else R.drawable.ic_chevron_down
-            }
-        )
-    }
-
-    private fun animateExtraToggle(root: View, scrollContainer: View, expand: Boolean) {
-        val isH = currentOrientation == ToolbarOrientation.HORIZONTAL
-        val divider = root.findViewById<View>(R.id.toolbar_divider)
-
-        updateArrowIcon(root, expand)
-        if (expand) divider?.visibility = View.VISIBLE
-
-        if (scrollFullSize == 0) {
-            val inner = root.findViewById<View>(R.id.toolbar_scroll_inner)
-            inner?.post {
-                scrollFullSize = if (isH) inner.width else inner.height
-                if (scrollFullSize > 0) animateExtraToggle(root, scrollContainer, expand)
-            }
-            if (scrollFullSize == 0) return
+        val longPressRunnable = Runnable {
+            if (!longPressArmed || longPressFired) return@Runnable
+            longPressFired = true
+            btn.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            resetFadeTimer(); panelManager.togglePenNibsPopup()
         }
 
-        val params = scrollContainer.layoutParams
-        val startSize = if (isH) params.width.coerceAtLeast(0) else params.height.coerceAtLeast(0)
-        val endSize = if (expand) scrollFullSize else 0
-
-        scrollAnimator?.cancel()
-        scrollAnimator = ValueAnimator.ofInt(startSize, endSize).apply {
-            duration = 240L
-            interpolator = DecelerateInterpolator(1.3f)
-            addUpdateListener { anim ->
-                val size = anim.animatedValue as Int
-                if (isH) params.width = size else params.height = size
-                scrollContainer.layoutParams = params
-                scrollContainer.alpha = if (scrollFullSize > 0) (size.toFloat() / scrollFullSize).coerceIn(0f, 1f) else 0f
-                toolbarParams?.let { tp ->
-                    try { windowManager.updateViewLayout(root, tp) } catch (_: Exception) { }
+        btn.setOnTouchListener { v, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    longPressArmed = true; longPressFired = false
+                    pressDownX = event.rawX; pressDownY = event.rawY
+                    v.postDelayed(longPressRunnable, LONG_PRESS_MS); true
                 }
+                MotionEvent.ACTION_MOVE -> {
+                    if (!longPressArmed) return@setOnTouchListener false
+                    val dx = abs(event.rawX - pressDownX); val dy = abs(event.rawY - pressDownY)
+                    if (dx > touchSlop * 3 || dy > touchSlop * 3) {
+                        longPressArmed = false; v.removeCallbacks(longPressRunnable)
+                    }; true
+                }
+                MotionEvent.ACTION_UP -> {
+                    v.removeCallbacks(longPressRunnable)
+                    if (!longPressFired && longPressArmed) {
+                        v.performClick(); resetFadeTimer(); panelManager.toggleToolsPanel()
+                    }
+                    longPressArmed = false; longPressFired = false; true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    v.removeCallbacks(longPressRunnable)
+                    longPressArmed = false; longPressFired = false; true
+                }
+                else -> false
             }
-            if (!expand) {
-                doOnEndCompat { divider?.visibility = View.GONE }
-            }
-            start()
         }
+        btn.setOnClickListener(null)
     }
-
-    private fun ValueAnimator.doOnEndCompat(action: () -> Unit) {
-        addListener(object : android.animation.AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: android.animation.Animator) { action() }
-        })
-    }
-
-    // ─── Toggle Canvas Visibility (Eye) ───────────────────────────────────────
 
     private fun toggleCanvasVisibility() {
         canvasVisible = !canvasVisible
         if (!canvasVisible && service.appPreferences.clearOnHide) drawingCanvas.clearAll()
         drawingCanvas.visibility = if (canvasVisible) View.VISIBLE else View.INVISIBLE
         service.setCanvasTouchable(canvasVisible && service.appPreferences.fingerDrawing)
-        val eyeIcon = toolbarView?.findViewById<ImageView>(R.id.btn_hide)
-        eyeIcon?.setImageResource(if (canvasVisible) R.drawable.ic_eye else R.drawable.ic_eye_closed)
-        collapseCanvasHideState(!canvasVisible)
+        toolbarView?.findViewById<ImageView>(R.id.btn_hide)
+            ?.setImageResource(if (canvasVisible) R.drawable.ic_eye else R.drawable.ic_eye_closed)
+        collapseToolbar(!canvasVisible)
     }
 
-    /**
-     * ✅ الإصلاح الأساسي — لما العين تتلم، بنخفي كل حاجة تاني بما فيهم
-     * الفاصل وحاوية السهم بالكامل (FrameLayout)، مش بس الأيقونة اللي جواها.
-     * كده العين بتفضل Pill دائرية نضيفة من غير أي عنصر تاني جنبها.
-     */
-    private fun collapseCanvasHideState(hideMode: Boolean) {
+    // ✅ أنيميشن سلس بـ ValueAnimator بدل TransitionSet
+    private fun collapseToolbar(collapse: Boolean) {
         val v = toolbarView as? ViewGroup ?: return
         val params = toolbarParams ?: return
-        val isH = currentOrientation == ToolbarOrientation.HORIZONTAL
-        val contentGroup = if (isH) v.findViewById<ViewGroup>(R.id.toolbar_content_row) else v.findViewById<ViewGroup>(R.id.toolbar_content_col)
+        eyeAnimator?.cancel()
 
-        val transition = TransitionSet().apply {
-            addTransition(Fade(Fade.OUT)); addTransition(android.transition.ChangeBounds()); addTransition(Fade(Fade.IN))
-            ordering = TransitionSet.ORDERING_TOGETHER; duration = 480L; interpolator = DecelerateInterpolator(1.4f)
+        val innerViewIds = listOf(
+            R.id.btn_undo, R.id.btn_redo, R.id.btn_clear, R.id.btn_add_image,
+            R.id.btn_tools, R.id.view_color_dot, R.id.btn_finger,
+            R.id.btn_settings, R.id.toolbar_divider, R.id.btn_collapse_arrow_container
+        )
+        val innerViews = innerViewIds.mapNotNull { v.findViewById<View>(it) }
+
+        if (!collapse) {
+            v.setBackgroundResource(R.drawable.bg_toolbar)
+            innerViews.forEach { it.alpha = 0f; it.visibility = View.VISIBLE }
+            try { windowManager.updateViewLayout(v, params) } catch (_: Exception) { }
         }
-        TransitionManager.beginDelayedTransition(contentGroup, transition)
 
-        val vis = if (hideMode) View.GONE else View.VISIBLE
-        listOf(
-            R.id.btn_undo,
-            R.id.btn_clear,
-            R.id.view_color_dot,
-            R.id.btn_tools,
-            R.id.toolbar_divider,
-            R.id.toolbar_scroll_container,
-            R.id.btn_collapse_arrow_container
-        ).forEach { id -> contentGroup.findViewById<View>(id)?.visibility = vis }
-
-        contentGroup.setBackgroundResource(if (hideMode) R.drawable.bg_toolbar_collapsed else R.drawable.bg_toolbar)
-        contentGroup.post { try { windowManager.updateViewLayout(v, params) } catch (_: Exception) { } }
+        eyeAnimator = ValueAnimator.ofFloat(
+            if (collapse) 1f else 0f,
+            if (collapse) 0f else 1f
+        ).apply {
+            duration = 280L
+            interpolator = DecelerateInterpolator(1.5f)
+            addUpdateListener { anim ->
+                val a = anim.animatedValue as Float
+                innerViews.forEach { it.alpha = a }
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    if (collapse) {
+                        innerViews.forEach { it.visibility = View.GONE; it.alpha = 1f }
+                        v.setBackgroundResource(R.drawable.bg_toolbar_collapsed)
+                        try { windowManager.updateViewLayout(v, params) } catch (_: Exception) { }
+                    }
+                }
+            })
+            start()
+        }
     }
-
-    // ─── Drag ─────────────────────────────────────────────────────────────────
 
     private fun setupDrag(view: View, params: WindowManager.LayoutParams) {
         view.setOnTouchListener { _, event ->
@@ -349,8 +278,7 @@ class ToolbarManager(
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     isDragging = false; dragStartRawX = event.rawX; dragStartRawY = event.rawY
-                    windowInitX = params.x; windowInitY = params.y
-                    false
+                    windowInitX = params.x; windowInitY = params.y; false
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - dragStartRawX; val dy = event.rawY - dragStartRawY
@@ -366,8 +294,6 @@ class ToolbarManager(
             }
         }
     }
-
-    // ─── Idle Fade ────────────────────────────────────────────────────────────
 
     private fun scheduleIdleFade() {
         fadeHandler.removeCallbacksAndMessages(null)
