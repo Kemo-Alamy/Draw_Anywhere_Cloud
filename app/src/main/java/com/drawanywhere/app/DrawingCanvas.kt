@@ -34,6 +34,9 @@ class DrawingCanvas(context: Context) : View(context) {
     private var prevX            = 0f
     private var prevY            = 0f
 
+    // ✅ Fix 2: flag للـ suppressNextTouchGesture
+    private var suppressNextTouch = false
+
     private val rawPoints = mutableListOf<PointF>()
 
     private var offBmp: Bitmap? = null
@@ -76,6 +79,9 @@ class DrawingCanvas(context: Context) : View(context) {
 
     fun updateLineStyle(style: LineStyle) { currentLineStyle = style }
     fun hasContent(): Boolean = strokes.isNotEmpty() || imageOverlays.isNotEmpty()
+
+    // ✅ Fix 2: الدالة اللي بتناديها PanelManager لما البوب أب يتغلق
+    fun suppressNextTouchGesture() { suppressNextTouch = true }
 
     fun undo() {
         if (strokes.isNotEmpty()) {
@@ -275,7 +281,10 @@ class DrawingCanvas(context: Context) : View(context) {
         }
 
         val path = activePath ?: return
+
+        // ✅ Fix 1: أضفنا LASER -> {} علشان الـ when يبقى exhaustive
         when (currentTool) {
+            DrawingTool.LASER -> {}
             DrawingTool.RECTANGLE -> {
                 strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
                     xfermode = null; maskFilter = null; pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
@@ -322,7 +331,18 @@ class DrawingCanvas(context: Context) : View(context) {
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (!fingerDrawingEnabled) return false
+
+        // ✅ Fix 2: لو في بوب أب اتغلق، ابلع الـ gesture الجاي مباشرةً
+        if (suppressNextTouch) {
+            if (event.actionMasked == MotionEvent.ACTION_UP ||
+                event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                suppressNextTouch = false
+            }
+            return true
+        }
+
         if (imageOverlays.isNotEmpty() && imageController.onTouchEvent(event, imageOverlays)) return true
+
         val x = event.x; val y = event.y
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> touchDown(x, y)
