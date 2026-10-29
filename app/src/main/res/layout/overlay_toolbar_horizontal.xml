@@ -25,7 +25,6 @@
         android:paddingBottom="4dp"
         android:elevation="8dp">
 
-        <!-- ✅ العين — دايماً ظاهرة -->
         <ImageView
             android:id="@+id/btn_hide"
             android:layout_width="46dp"
@@ -39,7 +38,6 @@
             android:focusable="true"
             android:contentDescription="@string/cd_btn_hide" />
 
-        <!-- ✅ Core -->
         <ImageView
             android:id="@+id/btn_undo"
             android:layout_width="46dp"
@@ -55,7 +53,6 @@
             android:enabled="false"
             android:contentDescription="@string/cd_btn_undo" />
 
-        <!-- ✅ Redo — مصلح بنفس ستايل btn_undo -->
         <ImageView
             android:id="@+id/btn_redo"
             android:layout_width="46dp"
@@ -94,6 +91,27 @@
             android:focusable="true"
             android:contentDescription="@string/cd_btn_tools" />
 
+        <!-- ✅ السهم قبل الـ scroll عشان يظهر دايماً -->
+        <FrameLayout
+            android:id="@+id/btn_collapse_arrow_container"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/bg_collapse_pill">
+            <ImageView
+                android:id="@+id/btn_collapse_arrow"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="6dp"
+                android:src="@drawable/ic_chevron_right"
+                android:tint="@color/toolbar_icon_default"
+                android:scaleType="fitCenter"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/cd_btn_collapse" />
+        </FrameLayout>
+
         <View
             android:id="@+id/toolbar_divider"
             android:layout_width="1dp"
@@ -110,7 +128,8 @@
             android:scrollbars="none"
             android:overScrollMode="never"
             android:requiresFadingEdge="horizontal"
-            android:fadingEdgeLength="@dimen/toolbar_fading_edge_length">
+            android:fadingEdgeLength="@dimen/toolbar_fading_edge_length"
+            android:visibility="gone">
 
             <LinearLayout
                 android:id="@+id/toolbar_scroll_inner"
@@ -160,25 +179,6 @@
 
             </LinearLayout>
         </HorizontalScrollView>
-
-        <FrameLayout
-            android:id="@+id/btn_collapse_arrow_container"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:layout_marginStart="2dp"
-            android:background="@drawable/bg_collapse_pill">
-            <ImageView
-                android:id="@+id/btn_collapse_arrow"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="6dp"
-                android:src="@drawable/ic_chevron_right"
-                android:tint="@color/toolbar_icon_default"
-                android:scaleType="fitCenter"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="@string/cd_btn_collapse" />
-        </FrameLayout>
 
     </LinearLayout>
 
