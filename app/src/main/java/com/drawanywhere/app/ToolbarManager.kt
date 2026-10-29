@@ -36,6 +36,7 @@ class ToolbarManager(
     private val DRAG_THRESHOLD = 10f
 
     private var eyeAnimator: ValueAnimator? = null
+    private var isScrollExpanded = false  // حالة الـ scroll section
 
     private val toolIconMap = mapOf(
         DrawingTool.PEN           to R.drawable.ic_pen,
@@ -112,6 +113,11 @@ class ToolbarManager(
             toolIconMap[drawingCanvas.currentTool] ?: R.drawable.ic_pen
         )
 
+        // Initial state: scroll hidden
+        isScrollExpanded = false
+        view.findViewById<View>(R.id.toolbar_scroll_container)?.visibility = View.GONE
+        view.findViewById<View>(R.id.toolbar_divider)?.visibility = View.GONE
+
         setupButtons(view)
         setupDrag(view, params)
         scheduleIdleFade()
@@ -133,13 +139,11 @@ class ToolbarManager(
             resetFadeTimer(); drawingCanvas.undo()
         }
 
-        // ✅ زرار الـ Redo
+        // ✅ Redo
         val btnRedo = view.findViewById<ImageView>(R.id.btn_redo)
         btnRedo?.alpha = 0.35f
         btnRedo?.isEnabled = false
-        btnRedo?.setOnClickListener {
-            resetFadeTimer(); drawingCanvas.redo()
-        }
+        btnRedo?.setOnClickListener { resetFadeTimer(); drawingCanvas.redo() }
         drawingCanvas.onRedoStateChanged = { hasRedo ->
             view.post {
                 btnRedo?.animate()?.alpha(if (hasRedo) 1f else 0.35f)?.setDuration(150L)?.start()
@@ -153,8 +157,7 @@ class ToolbarManager(
         }
 
         view.findViewById<View>(R.id.btn_add_image)?.setOnClickListener {
-            resetFadeTimer(); panelManager.dismissAll()
-            service.launchImagePicker()
+            resetFadeTimer(); panelManager.dismissAll(); service.launchImagePicker()
         }
 
         attachToolsButtonGestures(view)
@@ -172,6 +175,33 @@ class ToolbarManager(
 
         view.findViewById<View>(R.id.btn_settings)?.setOnClickListener {
             resetFadeTimer(); panelManager.toggleSettingsPanel()
+        }
+
+        // ✅ السهم — بيوسع/يطوي الأزرار الإضافية
+        val arrowContainer  = view.findViewById<View>(R.id.btn_collapse_arrow_container)
+        val arrowIcon       = view.findViewById<ImageView>(R.id.btn_collapse_arrow)
+        val scrollContainer = view.findViewById<View>(R.id.toolbar_scroll_container)
+        val divider         = view.findViewById<View>(R.id.toolbar_divider)
+
+        arrowContainer?.setOnClickListener {
+            resetFadeTimer()
+            isScrollExpanded = !isScrollExpanded
+            if (isScrollExpanded) {
+                scrollContainer?.visibility = View.VISIBLE
+                divider?.visibility = View.VISIBLE
+            } else {
+                scrollContainer?.visibility = View.GONE
+                divider?.visibility = View.GONE
+            }
+            // السهم بيتقلب 180° للأعلى لما الـ scroll يظهر، وبيرجع لما يختفي
+            arrowIcon?.animate()
+                ?.rotation(if (isScrollExpanded) 180f else 0f)
+                ?.setDuration(250L)?.start()
+            // تحديث حجم الـ window
+            view.post {
+                try { windowManager.updateViewLayout(view, toolbarParams ?: return@post) }
+                catch (_: Exception) { }
+            }
         }
     }
 
@@ -230,24 +260,48 @@ class ToolbarManager(
         collapseToolbar(!canvasVisible)
     }
 
-    // ✅ أنيميشن سلس بـ ValueAnimator بدل TransitionSet
+    // ✅ الإصلاح الكامل: background على الـ child مش الـ root + تقسيم core/scroll
     private fun collapseToolbar(collapse: Boolean) {
         val v = toolbarView as? ViewGroup ?: return
         val params = toolbarParams ?: return
         eyeAnimator?.cancel()
 
-        val innerViewIds = listOf(
-            R.id.btn_undo, R.id.btn_redo, R.id.btn_clear, R.id.btn_add_image,
-            R.id.btn_tools, R.id.view_color_dot, R.id.btn_finger,
-            R.id.btn_settings, R.id.toolbar_divider, R.id.btn_collapse_arrow_container
+        // ✅ الـ background يتطبق على toolbar_content_row/col مش على الـ root
+        val contentView: View = v.findViewById(R.id.toolbar_content_row)
+            ?: v.findViewById(R.id.toolbar_content_col)
+            ?: v
+
+        // الأزرار الأساسية (تتأنم مع العين)
+        val coreViewIds = listOf(
+            R.id.btn_undo, R.id.btn_redo, R.id.btn_clear,
+            R.id.btn_tools, R.id.view_color_dot,
+            R.id.btn_collapse_arrow_container
         )
-        val innerViews = innerViewIds.mapNotNull { v.findViewById<View>(it) }
+        // قسم الـ scroll (بيتخفى مع العين + بيتحكم فيه السهم)
+        val scrollViewIds = listOf(
+            R.id.toolbar_divider,
+            R.id.toolbar_scroll_container
+        )
+
+        val coreViews   = coreViewIds.mapNotNull { v.findViewById<View>(it) }
+        val scrollViews = scrollViewIds.mapNotNull { v.findViewById<View>(it) }
+        val allViews    = coreViews + scrollViews
 
         if (!collapse) {
-            v.setBackgroundResource(R.drawable.bg_toolbar)
-            innerViews.forEach { it.alpha = 0f; it.visibility = View.VISIBLE }
+            // فتح العين: أظهر الـ core، واستعد الـ scroll لو كان مفتوح
+            contentView.setBackgroundResource(R.drawable.bg_toolbar)
+            coreViews.forEach { it.alpha = 0f; it.visibility = View.VISIBLE }
+            if (isScrollExpanded) {
+                scrollViews.forEach { it.alpha = 0f; it.visibility = View.VISIBLE }
+            }
+            // ابدأ بـ rotation صح للسهم
+            v.findViewById<ImageView>(R.id.btn_collapse_arrow)?.rotation =
+                if (isScrollExpanded) 180f else 0f
             try { windowManager.updateViewLayout(v, params) } catch (_: Exception) { }
         }
+
+        val viewsToAnimate: List<View> = if (collapse) allViews
+        else coreViews + if (isScrollExpanded) scrollViews else emptyList()
 
         eyeAnimator = ValueAnimator.ofFloat(
             if (collapse) 1f else 0f,
@@ -257,13 +311,13 @@ class ToolbarManager(
             interpolator = DecelerateInterpolator(1.5f)
             addUpdateListener { anim ->
                 val a = anim.animatedValue as Float
-                innerViews.forEach { it.alpha = a }
+                viewsToAnimate.forEach { it.alpha = a }
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     if (collapse) {
-                        innerViews.forEach { it.visibility = View.GONE; it.alpha = 1f }
-                        v.setBackgroundResource(R.drawable.bg_toolbar_collapsed)
+                        allViews.forEach { it.visibility = View.GONE; it.alpha = 1f }
+                        contentView.setBackgroundResource(R.drawable.bg_toolbar_collapsed)
                         try { windowManager.updateViewLayout(v, params) } catch (_: Exception) { }
                     }
                 }
