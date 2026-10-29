@@ -55,16 +55,21 @@
             android:enabled="false"
             android:contentDescription="@string/cd_btn_undo" />
 
-        <!-- ✅ الزر المضاف بنفس الخصائص والمقاسات التي أرسلتها -->
+        <!-- ✅ Redo — مصلح بنفس ستايل btn_undo -->
         <ImageView
             android:id="@+id/btn_redo"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            android:padding="9dp"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:padding="10dp"
             android:src="@drawable/ic_redo"
+            android:tint="@color/toolbar_icon_default"
+            android:scaleType="fitCenter"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:focusable="true"
             android:alpha="0.35"
-            android:contentDescription="Redo"
-            android:background="?attr/selectableItemBackgroundBorderless" />
+            android:enabled="false"
+            android:contentDescription="Redo" />
 
         <com.drawanywhere.app.ColorDropView
             android:id="@+id/view_color_dot"
@@ -156,7 +161,6 @@
             </LinearLayout>
         </HorizontalScrollView>
 
-        <!-- ✅ أضفنا id للحاوية نفسها عشان نقدر نخفيها بالكامل لما العين تتلم -->
         <FrameLayout
             android:id="@+id/btn_collapse_arrow_container"
             android:layout_width="28dp"
