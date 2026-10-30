@@ -38,7 +38,6 @@ class DrawingCanvas(context: Context) : View(context) {
 
     private val rawPoints = mutableListOf<PointF>()
 
-    // ✅ مؤشر الممحاة — بيتحدث وقت اللمس وبيتخفى لما تسيب صباعك
     private var eraserCursorX: Float = -1000f
     private var eraserCursorY: Float = -1000f
     private var showEraserCursor: Boolean = false
@@ -52,7 +51,6 @@ class DrawingCanvas(context: Context) : View(context) {
     }
 
     private val laserHandler  = Handler(Looper.getMainLooper())
-    // ✅ لون أزهى شوية من قبل + مدة أطول شوية
     private val LASER_COLOR   = Color.parseColor("#FF3B14")
     private val LASER_FADE_MS = 2600L
 
@@ -65,7 +63,6 @@ class DrawingCanvas(context: Context) : View(context) {
     }
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
 
-    // ✅ Paints مؤشر الممحاية: دائرة بيضاء معبّأة + حافة سوداء واضحة + حافة داخلية خفيفة
     private val eraserCursorFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
         color = Color.WHITE
@@ -124,7 +121,6 @@ class DrawingCanvas(context: Context) : View(context) {
         }
     }
 
-    // ✅ بتمسح الرسومات بس — مش بتمسح الصور (الصور ليها دبل-تاب مخصص للحذف)
     fun clearAll() {
         strokes.clear(); laserStrokes.clear()
         redoStack.clear()
@@ -154,7 +150,7 @@ class DrawingCanvas(context: Context) : View(context) {
         for (s in strokes) commitStroke(cvs, s)
     }
 
-    // ─── Commit (على offCvs فقط — بيتاب البيتماب الخاص بالرسم، ومبيأثرش على الصور خالص) ───
+    // ─── Commit ───────────────────────────────────────────────────────────────
 
     private fun commitStroke(cvs: Canvas, s: StrokeData) {
         when (s.tool) {
@@ -310,7 +306,6 @@ class DrawingCanvas(context: Context) : View(context) {
         val path = activePath
         if (path != null) {
             when (currentTool) {
-                // ✅ الليزر دلوقتي بيترسم حي لحظة ما تكتب، مش بعد ما تسيب صباعك
                 DrawingTool.LASER -> {
                     strokePaint.apply {
                         color = LASER_COLOR; alpha = 255; strokeWidth = currentStrokeWidth
@@ -330,7 +325,8 @@ class DrawingCanvas(context: Context) : View(context) {
                         xfermode = null; maskFilter = null; pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
                     canvas.drawOval(shapePreviewRect, strokePaint)
                 }
-                // ✅ من غير رسم حي مدمر — المؤشر الدائري بس هو اللي بيبان تحت
+                // ✅ الماسح الجزئي دلوقتي بيترسم مباشرة وبشكل حي على offCvs في touchDown/touchMove
+                // فمفيش داعي لرسم حي هنا، المؤشر الدائري بس اللي بيتعرض تحت
                 DrawingTool.PIXEL_ERASER  -> {}
                 DrawingTool.STROKE_ERASER -> {}
                 DrawingTool.PEN -> {
@@ -363,7 +359,6 @@ class DrawingCanvas(context: Context) : View(context) {
             }
         }
 
-        // ✅ مؤشر الممحاية — بيتعرض فوق كل حاجة، بيكبر/يصغر مع حجم القلم، ومبيمسحش فعليًا
         if (showEraserCursor && (currentTool == DrawingTool.STROKE_ERASER || currentTool == DrawingTool.PIXEL_ERASER)) {
             val radius = currentStrokeWidth / 2f
             canvas.drawCircle(eraserCursorX, eraserCursorY, radius, eraserCursorFillPaint)
@@ -421,6 +416,11 @@ class DrawingCanvas(context: Context) : View(context) {
             DrawingTool.PIXEL_ERASER -> {
                 showEraserCursor = true; eraserCursorX = x; eraserCursorY = y
                 activePath = Path().apply { moveTo(x, y) }
+                // ✅ مسح فوري عند أول لمسة — بدون انتظار السحب
+                offCvs?.let { cvs ->
+                    eraserPaint.strokeWidth = currentStrokeWidth
+                    cvs.drawCircle(x, y, currentStrokeWidth / 2f, eraserPaint)
+                }
             }
             DrawingTool.RECTANGLE, DrawingTool.ELLIPSE -> {
                 shapeStartX = x; shapeStartY = y; shapePreviewRect.set(x, y, x, y); activePath = Path()
@@ -443,6 +443,11 @@ class DrawingCanvas(context: Context) : View(context) {
                 if (p != null) {
                     val midX = (prevX + x) / 2f; val midY = (prevY + y) / 2f
                     p.quadTo(prevX, prevY, midX, midY)
+                }
+                // ✅ مسح حي فوري على offCvs أثناء السحب — آمن تمامًا ومالوش علاقة بالصورة
+                offCvs?.let { cvs ->
+                    eraserPaint.strokeWidth = currentStrokeWidth
+                    cvs.drawLine(prevX, prevY, x, y, eraserPaint)
                 }
                 prevX = x; prevY = y
             }
@@ -469,9 +474,10 @@ class DrawingCanvas(context: Context) : View(context) {
                 showEraserCursor = false
                 if (path != null) {
                     path.lineTo(x, y)
+                    // ✅ المسح اتطبق بالفعل حي أثناء السحب — هنا بس بنسجل الـ stroke
+                    // عشان الـ undo/redo يشتغلوا صح (rebuildOffscreen بيعيد تطبيقه تاني)
                     val s = StrokeData(DrawingTool.PIXEL_ERASER, path, currentColor, currentStrokeWidth, currentOpacity)
                     strokes.add(s); redoStack.clear()
-                    offCvs?.let { commitStroke(it, s) }
                     onContentChanged?.invoke(true); onRedoStateChanged?.invoke(false)
                 }
             }
