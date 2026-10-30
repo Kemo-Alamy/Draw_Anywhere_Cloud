@@ -343,21 +343,27 @@ class DrawingCanvas(context: Context) : View(context) {
             return true
         }
 
-        // ✅ إصبعين أو أكتر = تحريك/تكبير الصورة. إصبع واحد = رسم دايماً حتى فوق الصورة
+        // ✅ إصبعين أو أكتر = تكبير/تصغير/تدوير/تحريك الصورة — بيلغي أي رسم شغال فورًا
         if (event.pointerCount >= 2) {
             if (activePath != null) {
                 activePath = null
                 rawPoints.clear()
                 invalidate()
             }
-            if (imageOverlays.isNotEmpty() && imageController.onTouchEvent(event, imageOverlays)) {
+            if (imageOverlays.isNotEmpty() && imageController.onMultiTouchEvent(event, imageOverlays)) {
                 return true
             }
         }
 
         val x = event.x; val y = event.y
         when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> touchDown(x, y)
+            MotionEvent.ACTION_DOWN -> {
+                // ✅ دبل-تاب بإصبع واحد فوق صورة = حذفها بدل ما ترسم عليها
+                if (imageOverlays.isNotEmpty() && imageController.checkDoubleTapDelete(event, imageOverlays)) {
+                    return true
+                }
+                touchDown(x, y)
+            }
             MotionEvent.ACTION_MOVE -> if (event.pointerCount == 1) touchMove(x, y)
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> touchUp(x, y)
         }
