@@ -38,6 +38,11 @@ class DrawingCanvas(context: Context) : View(context) {
 
     private val rawPoints = mutableListOf<PointF>()
 
+    // ✅ مؤشر الممحاة — بيتحدث وقت اللمس وبيتخفى لما تسيب صباعك
+    private var eraserCursorX: Float = -1000f
+    private var eraserCursorY: Float = -1000f
+    private var showEraserCursor: Boolean = false
+
     private var offBmp: Bitmap? = null
     private var offCvs: Canvas? = null
 
@@ -47,8 +52,9 @@ class DrawingCanvas(context: Context) : View(context) {
     }
 
     private val laserHandler  = Handler(Looper.getMainLooper())
-    private val LASER_COLOR   = Color.parseColor("#FF2200")
-    private val LASER_FADE_MS = 2000L
+    // ✅ لون أزهى شوية من قبل + مدة أطول شوية
+    private val LASER_COLOR   = Color.parseColor("#FF3B14")
+    private val LASER_FADE_MS = 2600L
 
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
@@ -58,6 +64,22 @@ class DrawingCanvas(context: Context) : View(context) {
         xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
     }
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+
+    // ✅ Paints مؤشر الممحاية: دائرة بيضاء معبّأة + حافة سوداء واضحة + حافة داخلية خفيفة
+    private val eraserCursorFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = Color.WHITE
+    }
+    private val eraserCursorStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        color = Color.BLACK
+        strokeWidth = 2.2f
+    }
+    private val eraserCursorInnerStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        color = 0x33000000
+        strokeWidth = 1f
+    }
 
     init { setLayerType(LAYER_TYPE_SOFTWARE, null) }
 
@@ -102,12 +124,13 @@ class DrawingCanvas(context: Context) : View(context) {
         }
     }
 
+    // ✅ بتمسح الرسومات بس — مش بتمسح الصور (الصور ليها دبل-تاب مخصص للحذف)
     fun clearAll() {
-        strokes.clear(); laserStrokes.clear(); imageOverlays.clear()
+        strokes.clear(); laserStrokes.clear()
         redoStack.clear()
         laserHandler.removeCallbacksAndMessages(null)
         offBmp?.eraseColor(Color.TRANSPARENT); invalidate()
-        onContentChanged?.invoke(false)
+        onContentChanged?.invoke(hasContent())
         onRedoStateChanged?.invoke(false)
     }
 
@@ -131,7 +154,7 @@ class DrawingCanvas(context: Context) : View(context) {
         for (s in strokes) commitStroke(cvs, s)
     }
 
-    // ─── Commit ───────────────────────────────────────────────────────────────
+    // ─── Commit (على offCvs فقط — بيتاب البيتماب الخاص بالرسم، ومبيأثرش على الصور خالص) ───
 
     private fun commitStroke(cvs: Canvas, s: StrokeData) {
         when (s.tool) {
@@ -284,49 +307,68 @@ class DrawingCanvas(context: Context) : View(context) {
             }
         }
 
-        val path = activePath ?: return
+        val path = activePath
+        if (path != null) {
+            when (currentTool) {
+                // ✅ الليزر دلوقتي بيترسم حي لحظة ما تكتب، مش بعد ما تسيب صباعك
+                DrawingTool.LASER -> {
+                    strokePaint.apply {
+                        color = LASER_COLOR; alpha = 255; strokeWidth = currentStrokeWidth
+                        maskFilter = BlurMaskFilter(currentStrokeWidth * 0.5f, BlurMaskFilter.Blur.SOLID)
+                        xfermode = null; pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE
+                    }
+                    canvas.drawPath(path, strokePaint)
+                    strokePaint.maskFilter = null
+                }
+                DrawingTool.RECTANGLE -> {
+                    strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
+                        xfermode = null; maskFilter = null; pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
+                    canvas.drawRect(shapePreviewRect, strokePaint)
+                }
+                DrawingTool.ELLIPSE -> {
+                    strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
+                        xfermode = null; maskFilter = null; pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
+                    canvas.drawOval(shapePreviewRect, strokePaint)
+                }
+                // ✅ من غير رسم حي مدمر — المؤشر الدائري بس هو اللي بيبان تحت
+                DrawingTool.PIXEL_ERASER  -> {}
+                DrawingTool.STROKE_ERASER -> {}
+                DrawingTool.PEN -> {
+                    val live = StrokeData(DrawingTool.PEN, path, currentColor, currentStrokeWidth, currentOpacity, currentLineStyle)
+                    drawFinePen(canvas, path, live)
+                }
+                DrawingTool.CALLIGRAPHY -> {
+                    val live = StrokeData(DrawingTool.CALLIGRAPHY, path, currentColor, currentStrokeWidth, currentOpacity, rawPoints = ArrayList(rawPoints))
+                    drawCalligraphy(canvas, live)
+                }
+                DrawingTool.MATTE_PEN -> {
+                    val live = StrokeData(DrawingTool.MATTE_PEN, path, currentColor, currentStrokeWidth, 255)
+                    drawMatteThick(canvas, path, live)
+                }
+                DrawingTool.BRUSH -> {
+                    val live = StrokeData(DrawingTool.BRUSH, path, currentColor, currentStrokeWidth, currentOpacity, rawPoints = ArrayList(rawPoints))
+                    drawRealPencil(canvas, live)
+                }
+                DrawingTool.HIGHLIGHTER -> {
+                    val live = StrokeData(DrawingTool.HIGHLIGHTER, path, currentColor, currentStrokeWidth, currentOpacity)
+                    drawHighlighter(canvas, path, live)
+                }
+                DrawingTool.LASSO -> {
+                    strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
+                        xfermode = null; maskFilter = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
+                    applyLineStyle(strokePaint, LineStyle.DASHED, currentStrokeWidth)
+                    canvas.drawPath(path, strokePaint)
+                    strokePaint.pathEffect = null
+                }
+            }
+        }
 
-        when (currentTool) {
-            DrawingTool.LASER -> {}
-            DrawingTool.RECTANGLE -> {
-                strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
-                    xfermode = null; maskFilter = null; pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
-                canvas.drawRect(shapePreviewRect, strokePaint)
-            }
-            DrawingTool.ELLIPSE -> {
-                strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
-                    xfermode = null; maskFilter = null; pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
-                canvas.drawOval(shapePreviewRect, strokePaint)
-            }
-            DrawingTool.PIXEL_ERASER  -> { eraserPaint.strokeWidth = currentStrokeWidth; canvas.drawPath(path, eraserPaint) }
-            DrawingTool.STROKE_ERASER -> {}
-            DrawingTool.PEN -> {
-                val live = StrokeData(DrawingTool.PEN, path, currentColor, currentStrokeWidth, currentOpacity, currentLineStyle)
-                drawFinePen(canvas, path, live)
-            }
-            DrawingTool.CALLIGRAPHY -> {
-                val live = StrokeData(DrawingTool.CALLIGRAPHY, path, currentColor, currentStrokeWidth, currentOpacity, rawPoints = ArrayList(rawPoints))
-                drawCalligraphy(canvas, live)
-            }
-            DrawingTool.MATTE_PEN -> {
-                val live = StrokeData(DrawingTool.MATTE_PEN, path, currentColor, currentStrokeWidth, 255)
-                drawMatteThick(canvas, path, live)
-            }
-            DrawingTool.BRUSH -> {
-                val live = StrokeData(DrawingTool.BRUSH, path, currentColor, currentStrokeWidth, currentOpacity, rawPoints = ArrayList(rawPoints))
-                drawRealPencil(canvas, live)
-            }
-            DrawingTool.HIGHLIGHTER -> {
-                val live = StrokeData(DrawingTool.HIGHLIGHTER, path, currentColor, currentStrokeWidth, currentOpacity)
-                drawHighlighter(canvas, path, live)
-            }
-            DrawingTool.LASSO -> {
-                strokePaint.apply { color = currentColor; alpha = currentOpacity; strokeWidth = currentStrokeWidth
-                    xfermode = null; maskFilter = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
-                applyLineStyle(strokePaint, LineStyle.DASHED, currentStrokeWidth)
-                canvas.drawPath(path, strokePaint)
-                strokePaint.pathEffect = null
-            }
+        // ✅ مؤشر الممحاية — بيتعرض فوق كل حاجة، بيكبر/يصغر مع حجم القلم، ومبيمسحش فعليًا
+        if (showEraserCursor && (currentTool == DrawingTool.STROKE_ERASER || currentTool == DrawingTool.PIXEL_ERASER)) {
+            val radius = currentStrokeWidth / 2f
+            canvas.drawCircle(eraserCursorX, eraserCursorY, radius, eraserCursorFillPaint)
+            canvas.drawCircle(eraserCursorX, eraserCursorY, radius, eraserCursorStrokePaint)
+            canvas.drawCircle(eraserCursorX, eraserCursorY, radius + 2.5f, eraserCursorInnerStrokePaint)
         }
     }
 
@@ -343,7 +385,6 @@ class DrawingCanvas(context: Context) : View(context) {
             return true
         }
 
-        // ✅ إصبعين أو أكتر = تكبير/تصغير/تدوير/تحريك الصورة — بيلغي أي رسم شغال فورًا
         if (event.pointerCount >= 2) {
             if (activePath != null) {
                 activePath = null
@@ -358,7 +399,6 @@ class DrawingCanvas(context: Context) : View(context) {
         val x = event.x; val y = event.y
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                // ✅ دبل-تاب بإصبع واحد فوق صورة = حذفها بدل ما ترسم عليها
                 if (imageOverlays.isNotEmpty() && imageController.checkDoubleTapDelete(event, imageOverlays)) {
                     return true
                 }
@@ -374,7 +414,14 @@ class DrawingCanvas(context: Context) : View(context) {
         prevX = x; prevY = y
         rawPoints.clear(); rawPoints.add(PointF(x, y))
         when (currentTool) {
-            DrawingTool.STROKE_ERASER -> eraseStrokeAt(x, y)
+            DrawingTool.STROKE_ERASER -> {
+                showEraserCursor = true; eraserCursorX = x; eraserCursorY = y
+                eraseStrokeAt(x, y)
+            }
+            DrawingTool.PIXEL_ERASER -> {
+                showEraserCursor = true; eraserCursorX = x; eraserCursorY = y
+                activePath = Path().apply { moveTo(x, y) }
+            }
             DrawingTool.RECTANGLE, DrawingTool.ELLIPSE -> {
                 shapeStartX = x; shapeStartY = y; shapePreviewRect.set(x, y, x, y); activePath = Path()
             }
@@ -386,7 +433,19 @@ class DrawingCanvas(context: Context) : View(context) {
 
     private fun touchMove(x: Float, y: Float) {
         when (currentTool) {
-            DrawingTool.STROKE_ERASER -> { eraseStrokeAt(x, y); return }
+            DrawingTool.STROKE_ERASER -> {
+                eraserCursorX = x; eraserCursorY = y
+                eraseStrokeAt(x, y)
+            }
+            DrawingTool.PIXEL_ERASER -> {
+                eraserCursorX = x; eraserCursorY = y
+                val p = activePath
+                if (p != null) {
+                    val midX = (prevX + x) / 2f; val midY = (prevY + y) / 2f
+                    p.quadTo(prevX, prevY, midX, midY)
+                }
+                prevX = x; prevY = y
+            }
             DrawingTool.RECTANGLE, DrawingTool.ELLIPSE ->
                 shapePreviewRect.set(min(shapeStartX, x), min(shapeStartY, y), max(shapeStartX, x), max(shapeStartY, y))
             else -> {
@@ -403,7 +462,19 @@ class DrawingCanvas(context: Context) : View(context) {
     private fun touchUp(x: Float, y: Float) {
         val path = activePath
         when (currentTool) {
-            DrawingTool.STROKE_ERASER -> {}
+            DrawingTool.STROKE_ERASER -> {
+                showEraserCursor = false
+            }
+            DrawingTool.PIXEL_ERASER -> {
+                showEraserCursor = false
+                if (path != null) {
+                    path.lineTo(x, y)
+                    val s = StrokeData(DrawingTool.PIXEL_ERASER, path, currentColor, currentStrokeWidth, currentOpacity)
+                    strokes.add(s); redoStack.clear()
+                    offCvs?.let { commitStroke(it, s) }
+                    onContentChanged?.invoke(true); onRedoStateChanged?.invoke(false)
+                }
+            }
             DrawingTool.RECTANGLE, DrawingTool.ELLIPSE -> {
                 if (path != null) {
                     val s = StrokeData(currentTool, path, currentColor, currentStrokeWidth, currentOpacity, rect = RectF(shapePreviewRect))
