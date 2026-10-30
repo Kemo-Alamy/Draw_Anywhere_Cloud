@@ -34,7 +34,6 @@ class DrawingCanvas(context: Context) : View(context) {
     private var prevX            = 0f
     private var prevY            = 0f
 
-    // ✅ Fix 2: flag للـ suppressNextTouchGesture
     private var suppressNextTouch = false
 
     private val rawPoints = mutableListOf<PointF>()
@@ -80,7 +79,6 @@ class DrawingCanvas(context: Context) : View(context) {
     fun updateLineStyle(style: LineStyle) { currentLineStyle = style }
     fun hasContent(): Boolean = strokes.isNotEmpty() || imageOverlays.isNotEmpty()
 
-    // ✅ Fix 2: الدالة اللي بتناديها PanelManager لما البوب أب يتغلق
     fun suppressNextTouchGesture() { suppressNextTouch = true }
 
     fun undo() {
@@ -144,7 +142,7 @@ class DrawingCanvas(context: Context) : View(context) {
             DrawingTool.PEN           -> drawFinePen(cvs, s.path, s)
             DrawingTool.CALLIGRAPHY   -> drawCalligraphy(cvs, s)
             DrawingTool.MATTE_PEN     -> drawMatteThick(cvs, s.path, s)
-            DrawingTool.BRUSH         -> drawGrainyPencil(cvs, s)
+            DrawingTool.BRUSH         -> drawRealPencil(cvs, s)
             DrawingTool.HIGHLIGHTER   -> drawHighlighter(cvs, s.path, s)
             DrawingTool.LASSO -> {
                 configPlainPaint(strokePaint, s)
@@ -208,24 +206,30 @@ class DrawingCanvas(context: Context) : View(context) {
         cvs.drawPath(path, strokePaint)
     }
 
-    private fun drawGrainyPencil(cvs: Canvas, s: StrokeData) {
+    private fun drawRealPencil(cvs: Canvas, s: StrokeData) {
+        strokePaint.apply {
+            color = s.color; alpha = (s.opacity * 0.88f).toInt(); strokeWidth = s.strokeWidth
+            xfermode = null; maskFilter = null
+            strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND; style = Paint.Style.STROKE
+        }
+        cvs.drawPath(s.path, strokePaint)
+
         val pts = s.rawPoints ?: return
         if (pts.size < 2) return
         val rnd = Random(s.timestamp)
         fillPaint.color = s.color
         for (i in 0 until pts.size - 1) {
             val p0 = pts[i]; val p1 = pts[i + 1]
-            for (j in 0..4) {
-                val t = j / 4f
+            val steps = 3
+            for (j in 0..steps) {
+                val t = j / steps.toFloat()
                 val x = p0.x + (p1.x - p0.x) * t
                 val y = p0.y + (p1.y - p0.y) * t
-                repeat(3) {
-                    val jx = (rnd.nextFloat() - 0.5f) * s.strokeWidth * 0.9f
-                    val jy = (rnd.nextFloat() - 0.5f) * s.strokeWidth * 0.9f
-                    val r  = (s.strokeWidth * 0.12f) * (0.5f + rnd.nextFloat() * 0.5f)
-                    fillPaint.alpha = (s.opacity * (0.35f + rnd.nextFloat() * 0.4f)).toInt().coerceIn(0, 255)
-                    cvs.drawCircle(x + jx, y + jy, r, fillPaint)
-                }
+                val jitterX = (rnd.nextFloat() - 0.5f) * s.strokeWidth * 0.35f
+                val jitterY = (rnd.nextFloat() - 0.5f) * s.strokeWidth * 0.35f
+                val r = s.strokeWidth * 0.08f
+                fillPaint.alpha = ((s.opacity * 0.18f) * rnd.nextFloat()).toInt().coerceIn(0, 60)
+                cvs.drawCircle(x + jitterX, y + jitterY, r, fillPaint)
             }
         }
     }
@@ -282,7 +286,6 @@ class DrawingCanvas(context: Context) : View(context) {
 
         val path = activePath ?: return
 
-        // ✅ Fix 1: أضفنا LASER -> {} علشان الـ when يبقى exhaustive
         when (currentTool) {
             DrawingTool.LASER -> {}
             DrawingTool.RECTANGLE -> {
@@ -311,7 +314,7 @@ class DrawingCanvas(context: Context) : View(context) {
             }
             DrawingTool.BRUSH -> {
                 val live = StrokeData(DrawingTool.BRUSH, path, currentColor, currentStrokeWidth, currentOpacity, rawPoints = ArrayList(rawPoints))
-                drawGrainyPencil(canvas, live)
+                drawRealPencil(canvas, live)
             }
             DrawingTool.HIGHLIGHTER -> {
                 val live = StrokeData(DrawingTool.HIGHLIGHTER, path, currentColor, currentStrokeWidth, currentOpacity)
@@ -332,7 +335,6 @@ class DrawingCanvas(context: Context) : View(context) {
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (!fingerDrawingEnabled) return false
 
-        // ✅ Fix 2: لو في بوب أب اتغلق، ابلع الـ gesture الجاي مباشرةً
         if (suppressNextTouch) {
             if (event.actionMasked == MotionEvent.ACTION_UP ||
                 event.actionMasked == MotionEvent.ACTION_CANCEL) {
@@ -341,12 +343,22 @@ class DrawingCanvas(context: Context) : View(context) {
             return true
         }
 
-        if (imageOverlays.isNotEmpty() && imageController.onTouchEvent(event, imageOverlays)) return true
+        // ✅ إصبعين أو أكتر = تحريك/تكبير الصورة. إصبع واحد = رسم دايماً حتى فوق الصورة
+        if (event.pointerCount >= 2) {
+            if (activePath != null) {
+                activePath = null
+                rawPoints.clear()
+                invalidate()
+            }
+            if (imageOverlays.isNotEmpty() && imageController.onTouchEvent(event, imageOverlays)) {
+                return true
+            }
+        }
 
         val x = event.x; val y = event.y
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> touchDown(x, y)
-            MotionEvent.ACTION_MOVE -> touchMove(x, y)
+            MotionEvent.ACTION_MOVE -> if (event.pointerCount == 1) touchMove(x, y)
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> touchUp(x, y)
         }
         return true
