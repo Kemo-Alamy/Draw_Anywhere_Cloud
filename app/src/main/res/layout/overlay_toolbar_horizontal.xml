@@ -68,14 +68,28 @@
             android:enabled="false"
             android:contentDescription="Redo" />
 
-        <!-- ✅ ColorDropView اتبدلت بـ ImageView بأيقونة الـ palette -->
+        <!-- ✅ زرار السلة كان ناقص من الأفقي — أضيف دلوقتي -->
+        <ImageView
+            android:id="@+id/btn_clear"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:padding="10dp"
+            android:src="@drawable/ic_trash"
+            android:tint="@color/toolbar_icon_default"
+            android:scaleType="fitCenter"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:focusable="true"
+            android:alpha="0.35"
+            android:enabled="false"
+            android:contentDescription="@string/cd_btn_clear" />
+
+        <!-- ✅ نفس مقاس وpadding باقي الأيقونات بالظبط -->
         <ImageView
             android:id="@+id/view_color_dot"
-            android:layout_width="28dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="5dp"
-            android:layout_marginEnd="5dp"
-            android:padding="5dp"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:padding="10dp"
             android:src="@drawable/ic_palette"
             android:scaleType="fitCenter"
             android:background="@android:color/transparent"
@@ -95,27 +109,6 @@
             android:clickable="true"
             android:focusable="true"
             android:contentDescription="@string/cd_btn_tools" />
-
-        <!-- ✅ السهم — الـ ImageView الداخلية من غير clickable/focusable عشان الـ Container ياخد اللمسة -->
-        <FrameLayout
-            android:id="@+id/btn_collapse_arrow_container"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:layout_marginStart="2dp"
-            android:layout_marginEnd="2dp"
-            android:background="@drawable/bg_collapse_pill"
-            android:clickable="true"
-            android:focusable="true">
-            <ImageView
-                android:id="@+id/btn_collapse_arrow"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="6dp"
-                android:src="@drawable/ic_chevron_right"
-                android:tint="@color/toolbar_icon_default"
-                android:scaleType="fitCenter"
-                android:contentDescription="@string/cd_btn_collapse" />
-        </FrameLayout>
 
         <View
             android:id="@+id/toolbar_divider"
@@ -184,6 +177,26 @@
 
             </LinearLayout>
         </HorizontalScrollView>
+
+        <!-- ✅ السهم دلوقتي آخر حاجة في الصف -->
+        <FrameLayout
+            android:id="@+id/btn_collapse_arrow_container"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="2dp"
+            android:background="@drawable/bg_collapse_pill"
+            android:clickable="true"
+            android:focusable="true">
+            <ImageView
+                android:id="@+id/btn_collapse_arrow"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="6dp"
+                android:src="@drawable/ic_chevron_right"
+                android:tint="@color/toolbar_icon_default"
+                android:scaleType="fitCenter"
+                android:contentDescription="@string/cd_btn_collapse" />
+        </FrameLayout>
 
     </LinearLayout>
 
