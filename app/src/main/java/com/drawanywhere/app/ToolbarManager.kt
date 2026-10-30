@@ -36,7 +36,7 @@ class ToolbarManager(
     private val DRAG_THRESHOLD = 10f
 
     private var eyeAnimator: ValueAnimator? = null
-    private var isScrollExpanded = false  // حالة الـ scroll section
+    private var isScrollExpanded = false
 
     private val toolIconMap = mapOf(
         DrawingTool.PEN           to R.drawable.ic_pen,
@@ -65,8 +65,9 @@ class ToolbarManager(
 
     fun changeOrientation(orientation: ToolbarOrientation) { destroy(); inflate(orientation) }
 
+    // ✅ ColorDropView اتبدلت بـ ImageView — بنستخدم setColorFilter بدل setColor
     fun updateColorDot(color: Int) {
-        toolbarView?.findViewById<ColorDropView>(R.id.view_color_dot)?.setColor(color)
+        toolbarView?.findViewById<ImageView>(R.id.view_color_dot)?.setColorFilter(color)
     }
 
     fun updateFingerIndicator(drawingEnabled: Boolean) {
@@ -113,7 +114,6 @@ class ToolbarManager(
             toolIconMap[drawingCanvas.currentTool] ?: R.drawable.ic_pen
         )
 
-        // Initial state: scroll hidden
         isScrollExpanded = false
         view.findViewById<View>(R.id.toolbar_scroll_container)?.visibility = View.GONE
         view.findViewById<View>(R.id.toolbar_divider)?.visibility = View.GONE
@@ -139,7 +139,6 @@ class ToolbarManager(
             resetFadeTimer(); drawingCanvas.undo()
         }
 
-        // ✅ Redo
         val btnRedo = view.findViewById<ImageView>(R.id.btn_redo)
         btnRedo?.alpha = 0.35f
         btnRedo?.isEnabled = false
@@ -177,7 +176,7 @@ class ToolbarManager(
             resetFadeTimer(); panelManager.toggleSettingsPanel()
         }
 
-        // ✅ السهم — بيوسع/يطوي الأزرار الإضافية
+        // ✅ السهم — الـ listener على الـ Container، والـ ImageView الداخلية من غير clickable
         val arrowContainer  = view.findViewById<View>(R.id.btn_collapse_arrow_container)
         val arrowIcon       = view.findViewById<ImageView>(R.id.btn_collapse_arrow)
         val scrollContainer = view.findViewById<View>(R.id.toolbar_scroll_container)
@@ -193,11 +192,9 @@ class ToolbarManager(
                 scrollContainer?.visibility = View.GONE
                 divider?.visibility = View.GONE
             }
-            // السهم بيتقلب 180° للأعلى لما الـ scroll يظهر، وبيرجع لما يختفي
             arrowIcon?.animate()
                 ?.rotation(if (isScrollExpanded) 180f else 0f)
                 ?.setDuration(250L)?.start()
-            // تحديث حجم الـ window
             view.post {
                 try { windowManager.updateViewLayout(view, toolbarParams ?: return@post) }
                 catch (_: Exception) { }
@@ -260,24 +257,20 @@ class ToolbarManager(
         collapseToolbar(!canvasVisible)
     }
 
-    // ✅ الإصلاح الكامل: background على الـ child مش الـ root + تقسيم core/scroll
     private fun collapseToolbar(collapse: Boolean) {
         val v = toolbarView as? ViewGroup ?: return
         val params = toolbarParams ?: return
         eyeAnimator?.cancel()
 
-        // ✅ الـ background يتطبق على toolbar_content_row/col مش على الـ root
         val contentView: View = v.findViewById(R.id.toolbar_content_row)
             ?: v.findViewById(R.id.toolbar_content_col)
             ?: v
 
-        // الأزرار الأساسية (تتأنم مع العين)
         val coreViewIds = listOf(
             R.id.btn_undo, R.id.btn_redo, R.id.btn_clear,
             R.id.btn_tools, R.id.view_color_dot,
             R.id.btn_collapse_arrow_container
         )
-        // قسم الـ scroll (بيتخفى مع العين + بيتحكم فيه السهم)
         val scrollViewIds = listOf(
             R.id.toolbar_divider,
             R.id.toolbar_scroll_container
@@ -288,13 +281,11 @@ class ToolbarManager(
         val allViews    = coreViews + scrollViews
 
         if (!collapse) {
-            // فتح العين: أظهر الـ core، واستعد الـ scroll لو كان مفتوح
             contentView.setBackgroundResource(R.drawable.bg_toolbar)
             coreViews.forEach { it.alpha = 0f; it.visibility = View.VISIBLE }
             if (isScrollExpanded) {
                 scrollViews.forEach { it.alpha = 0f; it.visibility = View.VISIBLE }
             }
-            // ابدأ بـ rotation صح للسهم
             v.findViewById<ImageView>(R.id.btn_collapse_arrow)?.rotation =
                 if (isScrollExpanded) 180f else 0f
             try { windowManager.updateViewLayout(v, params) } catch (_: Exception) { }
