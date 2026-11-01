@@ -325,8 +325,6 @@ class DrawingCanvas(context: Context) : View(context) {
                         xfermode = null; maskFilter = null; pathEffect = null; strokeCap = Paint.Cap.ROUND; style = Paint.Style.STROKE }
                     canvas.drawOval(shapePreviewRect, strokePaint)
                 }
-                // ✅ الماسح الجزئي دلوقتي بيترسم مباشرة وبشكل حي على offCvs في touchDown/touchMove
-                // فمفيش داعي لرسم حي هنا، المؤشر الدائري بس اللي بيتعرض تحت
                 DrawingTool.PIXEL_ERASER  -> {}
                 DrawingTool.STROKE_ERASER -> {}
                 DrawingTool.PEN -> {
@@ -416,7 +414,6 @@ class DrawingCanvas(context: Context) : View(context) {
             DrawingTool.PIXEL_ERASER -> {
                 showEraserCursor = true; eraserCursorX = x; eraserCursorY = y
                 activePath = Path().apply { moveTo(x, y) }
-                // ✅ مسح فوري عند أول لمسة — بدون انتظار السحب
                 offCvs?.let { cvs ->
                     eraserPaint.strokeWidth = currentStrokeWidth
                     cvs.drawCircle(x, y, currentStrokeWidth / 2f, eraserPaint)
@@ -444,7 +441,6 @@ class DrawingCanvas(context: Context) : View(context) {
                     val midX = (prevX + x) / 2f; val midY = (prevY + y) / 2f
                     p.quadTo(prevX, prevY, midX, midY)
                 }
-                // ✅ مسح حي فوري على offCvs أثناء السحب — آمن تمامًا ومالوش علاقة بالصورة
                 offCvs?.let { cvs ->
                     eraserPaint.strokeWidth = currentStrokeWidth
                     cvs.drawLine(prevX, prevY, x, y, eraserPaint)
@@ -474,8 +470,6 @@ class DrawingCanvas(context: Context) : View(context) {
                 showEraserCursor = false
                 if (path != null) {
                     path.lineTo(x, y)
-                    // ✅ المسح اتطبق بالفعل حي أثناء السحب — هنا بس بنسجل الـ stroke
-                    // عشان الـ undo/redo يشتغلوا صح (rebuildOffscreen بيعيد تطبيقه تاني)
                     val s = StrokeData(DrawingTool.PIXEL_ERASER, path, currentColor, currentStrokeWidth, currentOpacity)
                     strokes.add(s); redoStack.clear()
                     onContentChanged?.invoke(true); onRedoStateChanged?.invoke(false)
@@ -527,15 +521,56 @@ class DrawingCanvas(context: Context) : View(context) {
         activePath = null; rawPoints.clear(); invalidate()
     }
 
+    // ✅ الممحاية الكاملة: اختبار دقيق لمسافة اللمسة من الخط نفسه (مش صندوق وهمي)
+    // ومستحيل تمسح سجلات الممحاية الجزئية أو تأثر على الصور
     private fun eraseStrokeAt(x: Float, y: Float) {
-        val iter = strokes.iterator(); var changed = false
+        val tolerance = (currentStrokeWidth / 2f) + 24f
+        val iter = strokes.iterator()
+        var changed = false
         while (iter.hasNext()) {
-            val s = iter.next(); val b = RectF()
-            s.rect?.let { b.set(it) } ?: s.path.computeBounds(b, true)
-            b.inset(-40f, -40f)
-            if (b.contains(x, y)) { iter.remove(); changed = true }
+            val s = iter.next()
+
+            // ✅ ماينفعش الممحاية الكاملة تمسح سجلات الممحاية الجزئية
+            if (s.tool == DrawingTool.PIXEL_ERASER) continue
+
+            val hit = when (s.tool) {
+                DrawingTool.RECTANGLE, DrawingTool.ELLIPSE -> {
+                    val b = RectF()
+                    s.rect?.let { b.set(it) }
+                    val onBorder = isPointNearRectBorder(b, x, y, tolerance)
+                    onBorder
+                }
+                else -> isPointNearPath(s.path, x, y, tolerance + s.strokeWidth / 2f)
+            }
+            if (hit) { iter.remove(); changed = true }
         }
         if (changed) { rebuildOffscreen(); invalidate(); onContentChanged?.invoke(hasContent()) }
+    }
+
+    /** بيتأكد إن النقطة قريبة فعليًا من مسار الخط، بدقة بكسل، مش من صندوق تخيلي حواليه */
+    private fun isPointNearPath(path: Path, x: Float, y: Float, tolerance: Float): Boolean {
+        val measure = PathMeasure(path, false)
+        val pos = FloatArray(2)
+        val length = measure.length
+        if (length <= 0f) {
+            measure.getPosTan(0f, pos, null)
+            return hypot(pos[0] - x, pos[1] - y) <= tolerance
+        }
+        var distance = 0f
+        val step = 6f
+        while (distance <= length) {
+            measure.getPosTan(distance, pos, null)
+            if (hypot(pos[0] - x, pos[1] - y) <= tolerance) return true
+            distance += step
+        }
+        measure.getPosTan(length, pos, null)
+        return hypot(pos[0] - x, pos[1] - y) <= tolerance
+    }
+
+    private fun isPointNearRectBorder(rect: RectF, x: Float, y: Float, tolerance: Float): Boolean {
+        val outer = RectF(rect).apply { inset(-tolerance, -tolerance) }
+        val inner = RectF(rect).apply { inset(tolerance, tolerance) }
+        return outer.contains(x, y) && !inner.contains(x, y)
     }
 
     private fun scheduleLaserFade(stroke: StrokeData) {
