@@ -476,7 +476,7 @@ class DrawingCanvas(context: Context) : View(context) {
             DrawingTool.PIXEL_ERASER -> {
                 showEraserCursor = false
                 eraserSweepPoints.add(PointF(x, y))
-                // ✅ التقسيم الفعلي للخطوط بناءً على مسار الممحاية بالكامل
+                // ✅ التقسيم الفعلي للخطوط والأشكال بناءً على مسار الممحاية بالكامل
                 performGeometricErase(eraserSweepPoints, currentStrokeWidth / 2f)
                 eraserSweepPoints.clear()
             }
@@ -526,7 +526,7 @@ class DrawingCanvas(context: Context) : View(context) {
         activePath = null; rawPoints.clear(); invalidate()
     }
 
-    // ✅ الممحاية الكاملة: تتجاهل القطع المتعلقة بالممحاية الجزئية (لم تعد موجودة أصلاً بعد التقسيم)
+    // ✅ الممحاية الكاملة: تتجاهل القطع المتعلقة بالممحاية الجزئية (الأصل اختفى بعد التقسيم)
     // وتفحص المسافة الفعلية من الخط — كل قطعة مستقلة منذ التقسيم
     private fun eraseStrokeAt(x: Float, y: Float) {
         val tolerance = (currentStrokeWidth / 2f) + 24f
@@ -549,7 +549,7 @@ class DrawingCanvas(context: Context) : View(context) {
         if (changed) { rebuildOffscreen(); invalidate(); onContentChanged?.invoke(hasContent()) }
     }
 
-    // ✅ التقسيم الفعلي — بيحول أي خط لمسته الممحاية الجزئية لقطعتين (أو أكتر) منفصلتين تمامًا
+    // ✅ التقسيم الفعلي — بيحول أي خط أو محيط شكل لمسته الممحاية الجزئية لقطع مستقلة تمامًا
     private fun performGeometricErase(sweep: List<PointF>, radius: Float) {
         if (sweep.isEmpty()) return
         val result = mutableListOf<StrokeData>()
@@ -557,17 +557,55 @@ class DrawingCanvas(context: Context) : View(context) {
 
         for (s in strokes) {
             when (s.tool) {
-                DrawingTool.RECTANGLE, DrawingTool.ELLIPSE, DrawingTool.LASSO -> {
-                    // الأشكال المغلقة: تُمسح بالكامل لو اتلمست، بدون تقسيم هندسي
-                    val hit = sweep.any { p ->
-                        when (s.tool) {
-                            DrawingTool.RECTANGLE, DrawingTool.ELLIPSE -> {
-                                val b = RectF(); s.rect?.let { b.set(it) }
-                                isPointNearRectBorder(b, p.x, p.y, radius + 10f)
-                            }
-                            else -> isPointNearPath(s.path, p.x, p.y, radius + s.strokeWidth / 2f)
+                // ✅ المربع والدائرة بيتحولوا لمحيط (outline) قابل للتقسيم زي أي خط عادي —
+                // مش بيتمسحوا بالكامل لمجرد ما اللمسة تلمس أي جزء منهم
+                DrawingTool.RECTANGLE, DrawingTool.ELLIPSE -> {
+                    val rect = s.rect
+                    if (rect == null) { result.add(s); continue }
+
+                    val outline = Path()
+                    if (s.tool == DrawingTool.RECTANGLE) outline.addRect(rect, Path.Direction.CW)
+                    else outline.addOval(rect, Path.Direction.CW)
+
+                    val points = samplePathPoints(outline)
+                    if (points.size < 2) { result.add(s); continue }
+
+                    val hitRadius = radius + s.strokeWidth / 2f
+                    val keep = BooleanArray(points.size)
+                    for (i in points.indices) {
+                        val p = points[i]
+                        val erased = sweep.any { sp -> hypot(sp.x - p.x, sp.y - p.y) <= hitRadius }
+                        keep[i] = !erased
+                    }
+
+                    if (keep.all { it }) { result.add(s); continue }
+                    changed = true
+
+                    var i = 0
+                    while (i < points.size) {
+                        if (!keep[i]) { i++; continue }
+                        val start = i
+                        while (i < points.size && keep[i]) i++
+                        val runPoints = points.subList(start, i)
+                        if (runPoints.size >= 2) {
+                            val newPath = buildSmoothPath(runPoints)
+                            result.add(
+                                StrokeData(
+                                    tool = DrawingTool.PEN,
+                                    path = newPath,
+                                    color = s.color,
+                                    strokeWidth = s.strokeWidth,
+                                    opacity = s.opacity,
+                                    lineStyle = LineStyle.SOLID,
+                                    rawPoints = null,
+                                    timestamp = s.timestamp
+                                )
+                            )
                         }
                     }
+                }
+                DrawingTool.LASSO -> {
+                    val hit = sweep.any { p -> isPointNearPath(s.path, p.x, p.y, radius + s.strokeWidth / 2f) }
                     if (hit) changed = true else result.add(s)
                 }
                 else -> {
@@ -585,7 +623,6 @@ class DrawingCanvas(context: Context) : View(context) {
                     if (keep.all { it }) { result.add(s); continue }
                     changed = true
 
-                    // ✅ تقسيم لقطع متصلة مستقلة — كل قطعة StrokeData جديد تمامًا
                     var i = 0
                     while (i < points.size) {
                         if (!keep[i]) { i++; continue }
@@ -624,7 +661,7 @@ class DrawingCanvas(context: Context) : View(context) {
         }
     }
 
-    /** يأخذ عينة نقاط متباعدة بانتظام من مسار الخط (للأدوات اللي معندهاش rawPoints زي PEN) */
+    /** يأخذ عينة نقاط متباعدة بانتظام من مسار الخط (للأدوات اللي معندهاش rawPoints زي PEN، وكمان لمحيط الأشكال) */
     private fun samplePathPoints(path: Path): List<PointF> {
         val measure = PathMeasure(path, false)
         val length = measure.length
