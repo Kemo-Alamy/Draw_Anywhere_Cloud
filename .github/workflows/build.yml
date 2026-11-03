@@ -37,6 +37,6 @@ jobs:
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DrawOn-APK
+          name: DrawOn-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
