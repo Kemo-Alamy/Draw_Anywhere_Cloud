@@ -31,6 +31,9 @@ jobs:
           gradle wrapper --gradle-version=8.4
           chmod +x gradlew
 
+      - name: Clean Build
+        run: ./gradlew clean
+
       - name: Build DrawOn APK
         run: ./gradlew assembleDebug --stacktrace --no-daemon
 
