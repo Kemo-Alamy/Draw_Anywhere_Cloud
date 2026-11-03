@@ -40,11 +40,9 @@ android {
         viewBinding true
     }
 
-    // ✅ جديد — يغيّر اسم ملف الـ APK الناتج من app-debug.apk إلى DrawOn.apk
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            def buildType = variant.buildType.name
-            outputFileName = "DrawOn-${buildType}.apk"
+            outputFileName = "DrawOn.apk"
         }
     }
 }
