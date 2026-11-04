@@ -402,11 +402,26 @@ class PanelManager(
         page.findViewById<View>(R.id.btn_contact_developer)?.setOnClickListener {
             openWhatsAppChat("201115168017")
         }
+
+        page.findViewById<View>(R.id.btn_updates)?.setOnClickListener {
+            openExternalLink("https://kemo-alamy.github.io/Website_Kemo_Developer/")
+        }
     }
 
     private fun openWhatsAppChat(phoneWithCountryCode: String) {
         try {
             val uri = Uri.parse("https://wa.me/$phoneWithCountryCode")
+            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            service.startActivity(intent)
+            dismissAll()
+        } catch (e: Exception) { e.printStackTrace() }
+    }
+
+    private fun openExternalLink(url: String) {
+        try {
+            val uri = Uri.parse(url)
             val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
