@@ -155,5 +155,23 @@
             android:textSize="13sp"
             android:fontFamily="sans-serif" />
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/panel_section_divider"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp" />
+
+        <!-- ✅ جديد — زرار التحديثات، بيفتح صفحة المطور -->
+        <TextView
+            android:id="@+id/btn_updates"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:text="@string/settings_updates"
+            android:textColor="@color/panel_text"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif" />
+
     </LinearLayout>
 </ScrollView>
