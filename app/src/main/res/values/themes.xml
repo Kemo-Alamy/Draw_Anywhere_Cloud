@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.DrawAnywhere"
+    <style name="Theme.DrawOn"
         parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryVariant">@color/colorPrimaryVariant</item>
@@ -19,7 +19,7 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
 
-    <style name="Theme.DrawAnywhere.Transparent"
+    <style name="Theme.DrawOn.Transparent"
         parent="android:Theme.Translucent.NoTitleBar">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:colorBackground">@android:color/transparent</item>
@@ -30,10 +30,10 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
-    <style name="Widget.DrawAnywhere" parent="android:Widget"></style>
+    <style name="Widget.DrawOn" parent="android:Widget"></style>
 
     <!-- ✅ معدّل — ارتفاع وخط أكبر يناسب العرض الجديد 220dp -->
-    <style name="Widget.DrawAnywhere.ToolRow" parent="Widget.DrawAnywhere">
+    <style name="Widget.DrawOn.ToolRow" parent="Widget.DrawOn">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">46dp</item>
         <item name="android:gravity">center</item>
@@ -49,7 +49,7 @@
         <item name="android:maxLines">1</item>
     </style>
 
-    <style name="Widget.DrawAnywhere.ToolButton" parent="Widget.DrawAnywhere">
+    <style name="Widget.DrawOn.ToolButton" parent="Widget.DrawOn">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">44dp</item>
         <item name="android:gravity">center</item>
@@ -61,20 +61,20 @@
         <item name="android:fontFamily">sans-serif</item>
     </style>
 
-    <style name="Widget.DrawAnywhere.PanelLabel" parent="Widget.DrawAnywhere">
+    <style name="Widget.DrawOn.PanelLabel" parent="Widget.DrawOn">
         <item name="android:textColor">@color/panel_text</item>
         <item name="android:textSize">13sp</item>
         <item name="android:fontFamily">sans-serif</item>
     </style>
 
-    <style name="Widget.DrawAnywhere.SectionHeader" parent="Widget.DrawAnywhere">
+    <style name="Widget.DrawOn.SectionHeader" parent="Widget.DrawOn">
         <item name="android:textColor">@color/panel_subtext</item>
         <item name="android:textSize">12sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:textAllCaps">false</item>
     </style>
 
-    <style name="Widget.DrawAnywhere.ApplyButton" parent="Widget.DrawAnywhere">
+    <style name="Widget.DrawOn.ApplyButton" parent="Widget.DrawOn">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">44dp</item>
         <item name="android:background">@color/btn_apply_bg</item>
@@ -86,7 +86,7 @@
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
-    <style name="Widget.DrawAnywhere.QuitButton" parent="Widget.DrawAnywhere">
+    <style name="Widget.DrawOn.QuitButton" parent="Widget.DrawOn">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">44dp</item>
         <item name="android:background">@color/btn_quit_bg</item>
