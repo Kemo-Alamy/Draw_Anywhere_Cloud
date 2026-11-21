@@ -1,4 +1,4 @@
-package com.drawanywhere.app
+package com.drawOn.app
 
 import android.content.Context
 import android.os.Environment
@@ -15,7 +15,7 @@ import java.util.Locale
  */
 object CrashLogger {
 
-    private const val LOG_FILE_NAME = "drawanywhere_crash_log.txt"
+    private const val LOG_FILE_NAME = "drawOn_crash_log.txt"
 
     fun install(context: Context) {
         val appContext = context.applicationContext
@@ -41,7 +41,7 @@ object CrashLogger {
 
         val report = buildString {
             appendLine("=====================================")
-            appendLine("DrawAnywhere Crash Report")
+            appendLine("DrawOn Crash Report")
             appendLine("Time: $timestamp")
             appendLine("Thread: ${thread.name}")
             appendLine("=====================================")
