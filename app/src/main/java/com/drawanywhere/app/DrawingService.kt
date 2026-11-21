@@ -1,4 +1,4 @@
-package com.drawanywhere.app
+package com.drawOn.app
 
 import android.app.*
 import android.content.Intent
@@ -17,10 +17,10 @@ class DrawingService : Service() {
 
     companion object {
         @Volatile var isRunning: Boolean = false
-        const val ACTION_ADD_IMAGE = "com.drawanywhere.app.ACTION_ADD_IMAGE"
+        const val ACTION_ADD_IMAGE = "com.drawOn.app.ACTION_ADD_IMAGE"
         const val EXTRA_IMAGE_URI  = "extra_image_uri"
         private const val NOTIFICATION_ID = 1001
-        private const val CHANNEL_ID      = "draw_anywhere_channel"
+        private const val CHANNEL_ID      = "draw_On_channel"
     }
 
     internal lateinit var windowManager:  WindowManager
