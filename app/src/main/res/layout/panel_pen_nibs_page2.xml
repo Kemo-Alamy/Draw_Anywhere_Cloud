@@ -44,7 +44,7 @@
             </FrameLayout>
         </LinearLayout>
 
-        <com.drawanywhere.app.HsvColorPickerView
+        <com.drawOn.app.HsvColorPickerView
             android:id="@+id/hsv_picker"
             android:layout_width="match_parent"
             android:layout_height="160dp"
