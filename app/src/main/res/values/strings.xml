@@ -2,9 +2,9 @@
 <resources>
     <string name="app_name">DrawOn</string>
 
-    <string name="notification_channel_name">DrawAnywhere Service</string>
+    <string name="notification_channel_name">DrawOn Service</string>
     <string name="notification_channel_desc">Keeps the drawing overlay active</string>
-    <string name="notification_title">DrawAnywhere Active</string>
+    <string name="notification_title">DrawOn Active</string>
     <string name="notification_text">Tap the app icon to stop.</string>
 
     <string name="tool_pen">Pen</string>
@@ -36,13 +36,13 @@
     <string name="settings_updates">updates</string>
 
     <string name="panel_about">About</string>
-    <string name="about_app_name">DrawAnywhere</string>
+    <string name="about_app_name">DrawOn</string>
     <string name="about_app_version">2.3 (5)</string>
     <string name="about_developer_credit">Developed by Kemo</string>
-    <string name="about_text">© 2026 Kemo\n\nDrawAnywhere — Floating screen\nannotation tool for Android\n\nAll rights reserved.</string>
+    <string name="about_text">© 2026 Kemo\n\nDrawOn — Floating screen\nannotation tool for Android\n\nAll rights reserved.</string>
 
     <string name="perm_title">Overlay Permission Required</string>
-    <string name="perm_message">DrawAnywhere needs permission to draw over other apps.</string>
+    <string name="perm_message">DrawOn needs permission to draw over other apps.</string>
     <string name="perm_go_settings">Open Settings</string>
     <string name="perm_cancel">Cancel</string>
 
