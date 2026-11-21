@@ -1,4 +1,4 @@
-package com.drawanywhere.app
+package com.drawOn.app
 
 import android.graphics.RectF
 import android.view.MotionEvent
