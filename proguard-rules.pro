@@ -1,7 +1,7 @@
 # DrawAnywhere ProGuard Rules
 
 # ─── Keep Application Classes ────────────────────────────────────────────────
--keep class com.drawanywhere.app.** { *; }
+-keep class com.drawOn.app.** { *; }
 
 # ─── Keep Android Components ─────────────────────────────────────────────────
 -keep public class * extends android.app.Activity
@@ -9,8 +9,8 @@
 -keep public class * extends android.view.View
 
 # ─── Keep Custom Views (مهم عشان HsvColorPickerView يتحمّل من الـ XML) ───────
--keep class com.drawanywhere.app.HsvColorPickerView { *; }
--keep class com.drawanywhere.app.DrawingCanvas { *; }
+-keep class com.drawaOn.app.HsvColorPickerView { *; }
+-keep class com.drawOn.app.DrawingCanvas { *; }
 
 # ─── Kotlin ───────────────────────────────────────────────────────────────────
 -keep class kotlin.** { *; }
