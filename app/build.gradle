@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.drawanywhere.app'
+    namespace 'com.drawOn.app'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.drawanywhere.app"
+        applicationId "com.drawOn.app"
         minSdk 26
         targetSdk 34
         versionCode 1
