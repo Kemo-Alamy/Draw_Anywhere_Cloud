@@ -1,4 +1,4 @@
-package com.drawanywhere.app
+package com.drawOn.app
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -10,7 +10,7 @@ class AppPreferences(context: Context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     companion object {
-        private const val PREFS_NAME = "draw_anywhere_prefs"
+        private const val PREFS_NAME = "draw_On_prefs"
         private const val KEY_ORIENTATION    = "toolbar_orientation"
         private const val KEY_CLEAR_ON_HIDE  = "clear_on_hide"
         private const val KEY_OPEN_ON_START  = "open_on_start"
